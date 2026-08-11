@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Expo / RN
+.expo/
+.expo-shared/
+
+# OS
+.DS_Store

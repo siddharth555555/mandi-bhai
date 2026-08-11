@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mandi-bhai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mandibhai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mandibhai_dev_pw}
+      POSTGRES_DB: ${POSTGRES_DB:-mandibhai}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - mandi-bhai-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mandibhai}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mandi-bhai-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@mandibhai.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+
+volumes:
+  mandi-bhai-pgdata:
