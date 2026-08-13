@@ -1,8 +1,12 @@
 # Mandi Bhai — Project Setup
 
-Base scaffold (Postgres, backend, mobile frontend) plus the first real feature
-module: **Users & Auth** (phone + OTP login, retailer/wholesaler profiles,
-mandi-scoped admin). See `TODO.md` for every stub/deferred decision.
+Base scaffold (Postgres, backend, mobile frontend) plus three feature modules:
+**Users & Auth** (phone + OTP login, retailer/wholesaler/delivery-partner
+profiles, mandi-scoped admin), **Catalogue & Listings** (master products,
+wholesaler listings, search), and **Orders, Delivery & Udhaar Wallet**
+(cart → checkout → wholesaler fulfillment → platform-owned rider delivery →
+credit ledger). See `TODO.md` for every stub/deferred decision and
+`PLAN-order-delivery.md` for the design of the latest module.
 
 ## Stack
 
@@ -19,20 +23,30 @@ mandi-bhai/
 ├── .env.example             # DB credentials used by docker-compose.yml
 ├── backend/                  # NestJS API
 │   ├── src/
-│   │   ├── app.module.ts     # ConfigModule + TypeORM + Health/Auth/Mandis modules
-│   │   ├── entities/         # User, RetailerProfile, WholesalerProfile, MandiAdminProfile
+│   │   ├── app.module.ts     # ConfigModule + TypeORM + all feature modules
+│   │   ├── entities/         # User + one profile entity per role (incl. DeliveryPartnerProfile)
 │   │   ├── mandis/            # Mandi entity + GET /mandis
 │   │   ├── auth/               # OTP, JWT issuance, profile creation, guards
-│   │   ├── seed/                # manual seed script (mandis + Mandi Admins)
-│   │   └── health/              # GET /health — checks DB connectivity
+│   │   ├── catalog/             # master products, aliases, wholesaler listings, search
+│   │   ├── cart/                 # retailer cart (multi-wholesaler, MOQ/stock validation)
+│   │   ├── orders/                # checkout, order lifecycle (retailer + wholesaler sides)
+│   │   ├── delivery/               # rider assignment + delivery lifecycle (admin + rider sides)
+│   │   ├── wallet/                  # Udhaar credit account + ledger
+│   │   ├── notifications/            # stubbed notification driver (console logger)
+│   │   ├── seed/                       # manual seed script (mandis, admins, riders, catalogue)
+│   │   └── health/                      # GET /health — checks DB connectivity
 │   └── .env.example
 └── frontend/                  # Expo React Native app
-    ├── App.tsx                 # Auth-aware navigator (Phone/OTP -> CreateProfile -> Home)
+    ├── App.tsx                 # Auth-aware navigator, routes by role (incl. rider)
     └── src/
         ├── api/client.ts        # typed fetch wrapper for every backend endpoint
         ├── auth/AuthContext.tsx # token persistence (AsyncStorage) + session state
-        ├── navigation/           # route param types
-        └── screens/               # Phone, Otp, CreateProfile, RetailerHome, WholesalerHome
+        ├── navigation/           # route param types + per-role navigators
+        └── screens/               # Phone, Otp, CreateProfile, and per-role screens
+            ├── retailer/            # Home, Cart, Checkout, Orders, Wallet, Profile...
+            ├── wholesaler/           # Inventory, Catalogue, Orders, Profile...
+            ├── MandiAdminHomeScreen.tsx  # incl. unassigned-deliveries + rider assignment
+            └── RiderHomeScreen.tsx        # pickup/deliver/fail actions for assigned deliveries
 ```
 
 ## Prerequisites
@@ -119,11 +133,24 @@ npx expo start
 
 ## What's implemented vs. still ahead
 
-**Done:** phone+OTP login, JWT issuance, retailer/wholesaler profile creation,
-mandi listing, manually-seeded Mandi Admins, route guards ready for future
-role-gated endpoints.
+**Done:**
+- Phone+OTP login, JWT issuance, retailer/wholesaler/delivery-partner profile
+  creation, mandi listing, manually-seeded Mandi Admins and riders.
+- Master catalogue (products, aliases, categories) + wholesaler listings with
+  search, MOQ and stock.
+- Retailer cart (multi-wholesaler, MOQ/stock validation) → checkout, which
+  fans out into one `Order` per wholesaler with COD or Udhaar payment.
+- Wholesaler order lifecycle: confirm / reject / pack.
+- Platform-owned delivery: Mandi Admin assigns a rider to a packed order;
+  rider marks picked-up / delivered / failed. Stock is released automatically
+  on reject/cancel/failed-delivery.
+- Udhaar (credit) wallet: admin-set credit limit, checked at checkout,
+  drawn against the ledger at actual delivery time; retailer-facing wallet
+  screen with transaction history.
+- Everything that would need a third-party integration (SMS/push
+  notifications, payment gateway) is stubbed — see `TODO.md` — so the full
+  flow works end-to-end in dev without any external accounts.
 
-**Not yet:** catalog, cart/orders, wallet/Udhaar, KYC, payments, Mandi Admin
-console UI, real SMS delivery. See `TODO.md` for the full list and `git log`
-for what's shipped so far. Next logical module: **Catalog & SKU listing**
-(wholesaler "list new SKU" + moderation queue), since orders/cart depend on it.
+**Not yet:** KYC document verification, online payment gateway, Udhaar
+repayment UI, rider trip batching/geocoding, CI/CD. See `TODO.md` for the
+full list and `git log` for what's shipped so far.

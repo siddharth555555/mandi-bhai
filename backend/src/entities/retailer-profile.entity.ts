@@ -23,6 +23,14 @@ export class RetailerProfile {
   @Column({ nullable: true })
   shopName?: string;
 
+  /**
+   * Plain-text delivery address — added for the order/delivery module since
+   * nothing previously captured where a rider should drop an order. No
+   * structured street/city/pincode/geo fields yet (see PLAN-order-delivery.md).
+   */
+  @Column({ nullable: true })
+  address?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

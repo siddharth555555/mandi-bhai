@@ -11,6 +11,7 @@ import CreateProfileScreen from './src/screens/CreateProfileScreen';
 import RetailerNavigator from './src/navigation/RetailerNavigator';
 import WholesalerNavigator from './src/navigation/WholesalerNavigator';
 import MandiAdminHomeScreen from './src/screens/MandiAdminHomeScreen';
+import RiderHomeScreen from './src/screens/RiderHomeScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -45,7 +46,10 @@ function RootNavigator() {
 
   const profiles = user?.profiles;
   const hasAnyProfile =
-    !!profiles?.retailer || !!profiles?.wholesaler || !!profiles?.mandiAdmin;
+    !!profiles?.retailer ||
+    !!profiles?.wholesaler ||
+    !!profiles?.mandiAdmin ||
+    !!profiles?.deliveryPartner;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -58,6 +62,8 @@ function RootNavigator() {
         <Stack.Screen name="CreateProfile" component={CreateProfileScreen} />
       ) : profiles?.mandiAdmin ? (
         <Stack.Screen name="MandiAdminHome" component={MandiAdminHomeScreen} />
+      ) : profiles?.deliveryPartner ? (
+        <Stack.Screen name="RiderHome" component={RiderHomeScreen} />
       ) : profiles?.wholesaler ? (
         <Stack.Screen name="Wholesaler" component={WholesalerNavigator} />
       ) : (

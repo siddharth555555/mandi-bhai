@@ -12,6 +12,7 @@ import { User } from '../entities/user.entity';
 import { RetailerProfile } from '../entities/retailer-profile.entity';
 import { WholesalerProfile } from '../entities/wholesaler-profile.entity';
 import { MandiAdminProfile } from '../entities/mandi-admin-profile.entity';
+import { DeliveryPartnerProfile } from '../entities/delivery-partner-profile.entity';
 import { Mandi } from '../mandis/mandi.entity';
 
 @Module({
@@ -21,6 +22,7 @@ import { Mandi } from '../mandis/mandi.entity';
       RetailerProfile,
       WholesalerProfile,
       MandiAdminProfile,
+      DeliveryPartnerProfile,
       Mandi,
       OtpRequest,
     ]),

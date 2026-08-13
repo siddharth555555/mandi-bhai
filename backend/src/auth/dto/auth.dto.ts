@@ -1,4 +1,4 @@
-import { IsIn, IsString, Length, Matches } from 'class-validator';
+import { IsIn, IsOptional, IsString, Length, Matches } from 'class-validator';
 
 export class RequestOtpDto {
   @IsString()
@@ -19,6 +19,10 @@ export class VerifyOtpDto {
 export class CreateRetailerProfileDto {
   @IsString()
   shopName: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
 }
 
 export class CreateWholesalerProfileDto {
@@ -27,9 +31,19 @@ export class CreateWholesalerProfileDto {
 
   @IsString()
   mandiId: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+}
+
+export class UpdateAddressDto {
+  @IsString()
+  @Length(1, 300)
+  address: string;
 }
 
 export class SwitchProfileDto {
-  @IsIn(['retailer', 'wholesaler', 'mandi_admin'])
-  profile: 'retailer' | 'wholesaler' | 'mandi_admin';
+  @IsIn(['retailer', 'wholesaler', 'mandi_admin', 'delivery_partner'])
+  profile: 'retailer' | 'wholesaler' | 'mandi_admin' | 'delivery_partner';
 }

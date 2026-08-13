@@ -31,6 +31,13 @@ export class WholesalerProfile {
   @Column({ nullable: true })
   shopName?: string;
 
+  /**
+   * Plain-text pickup address — a rider needs somewhere to collect an order
+   * from. See PLAN-order-delivery.md §1 for why this is free text for now.
+   */
+  @Column({ nullable: true })
+  address?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

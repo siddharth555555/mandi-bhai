@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   CreateRetailerProfileDto,
   CreateWholesalerProfileDto,
   RequestOtpDto,
+  UpdateAddressDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -37,7 +38,11 @@ export class AuthController {
     @Req() req: { user: JwtPayload },
     @Body() dto: CreateRetailerProfileDto,
   ) {
-    return this.authService.createRetailerProfile(req.user.sub, dto.shopName);
+    return this.authService.createRetailerProfile(
+      req.user.sub,
+      dto.shopName,
+      dto.address,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -50,6 +55,25 @@ export class AuthController {
       req.user.sub,
       dto.shopName,
       dto.mandiId,
+      dto.address,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profiles/retailer/address')
+  updateRetailerAddress(
+    @Req() req: { user: JwtPayload },
+    @Body() dto: UpdateAddressDto,
+  ) {
+    return this.authService.updateRetailerAddress(req.user.sub, dto.address);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profiles/wholesaler/address')
+  updateWholesalerAddress(
+    @Req() req: { user: JwtPayload },
+    @Body() dto: UpdateAddressDto,
+  ) {
+    return this.authService.updateWholesalerAddress(req.user.sub, dto.address);
   }
 }

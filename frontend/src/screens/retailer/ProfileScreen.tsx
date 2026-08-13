@@ -1,15 +1,69 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Icon } from '../../components/Icon';
 import { colors, radius, shadow } from '../../theme';
 import { useAuth } from '../../auth/AuthContext';
+import { updateRetailerAddress } from '../../api/client';
+import type { RetailerStackParamList } from '../../navigation/types';
+
+type Nav = NativeStackNavigationProp<RetailerStackParamList>;
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
+  const navigation = useNavigation<Nav>();
+  const { user, token, signOut, refreshUser } = useAuth();
   const shopName = user?.profiles.retailer?.shopName ?? 'Your shop';
+  const address = user?.profiles.retailer?.address ?? null;
+
+  const [editingAddress, setEditingAddress] = useState(false);
+  const [addressInput, setAddressInput] = useState(address ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const openEditor = () => {
+    setAddressInput(address ?? '');
+    setEditingAddress(true);
+  };
+
+  const save = async () => {
+    if (!token || !addressInput.trim()) return;
+    setSaving(true);
+    try {
+      await updateRetailerAddress(token, addressInput.trim());
+      await refreshUser();
+      setEditingAddress(false);
+    } catch (e) {
+      Alert.alert('Could not save address', e instanceof Error ? e.message : 'Try again');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const rows = [
+    {
+      icon: 'location-on',
+      label: 'Delivery address',
+      sub: address ?? 'Add your shop address',
+      onPress: openEditor,
+    },
+    {
+      icon: 'account-balance-wallet',
+      label: 'Udhaar wallet',
+      sub: 'View credit limit & history',
+      onPress: () => navigation.navigate('Wallet'),
+    },
     { icon: 'verified', label: 'Shop KYC', sub: 'Not verified' },
     { icon: 'language', label: 'Language', sub: 'English' },
     { icon: 'notifications', label: 'Notifications', sub: 'Order updates on' },
@@ -32,19 +86,25 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View style={styles.card}>
           {rows.map((r, i) => (
-            <View
+            <TouchableOpacity
               key={r.label}
               style={[styles.row, i > 0 && styles.rowDivided]}
+              disabled={!r.onPress}
+              onPress={r.onPress}
             >
               <View style={styles.rowIcon}>
                 <Icon name={r.icon} size={21} color={colors.textMuted} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowLabel}>{r.label}</Text>
-                {r.sub ? <Text style={styles.rowSub}>{r.sub}</Text> : null}
+                {r.sub ? (
+                  <Text numberOfLines={1} style={styles.rowSub}>
+                    {r.sub}
+                  </Text>
+                ) : null}
               </View>
               <Icon name="chevron-right" size={22} color="#C7C1D4" />
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -54,6 +114,42 @@ export default function ProfileScreen() {
 
         <Text style={styles.version}>Mandi Bhai · v1.0.0 · Made for Bharat</Text>
       </ScrollView>
+
+      <Modal visible={editingAddress} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Delivery address</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Shop no, street, area, landmark"
+              placeholderTextColor={colors.textGhost}
+              value={addressInput}
+              onChangeText={setAddressInput}
+              multiline
+              autoFocus
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => setEditingAddress(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSave, !addressInput.trim() && styles.modalSaveDisabled]}
+                disabled={saving || !addressInput.trim()}
+                onPress={save}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -108,4 +204,49 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 12,
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: 20,
+  },
+  modalTitle: { fontWeight: '800', fontSize: 16, color: colors.text, marginBottom: 12 },
+  input: {
+    backgroundColor: colors.sunken,
+    borderRadius: radius.md,
+    padding: 12,
+    minHeight: 80,
+    fontWeight: '600',
+    fontSize: 13.5,
+    color: colors.text,
+    textAlignVertical: 'top',
+  },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  modalCancel: {
+    flex: 1,
+    height: 46,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: { fontWeight: '800', fontSize: 14, color: colors.textMuted },
+  modalSave: {
+    flex: 1,
+    height: 46,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSaveDisabled: { opacity: 0.5 },
+  modalSaveText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 });

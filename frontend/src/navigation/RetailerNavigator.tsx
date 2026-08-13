@@ -9,6 +9,10 @@ import BuyAgainScreen from '../screens/retailer/BuyAgainScreen';
 import OrdersScreen from '../screens/retailer/OrdersScreen';
 import ProfileScreen from '../screens/retailer/ProfileScreen';
 import ProductDetailScreen from '../screens/retailer/ProductDetailScreen';
+import CartScreen from '../screens/retailer/CartScreen';
+import CheckoutScreen from '../screens/retailer/CheckoutScreen';
+import OrderDetailScreen from '../screens/retailer/OrderDetailScreen';
+import WalletScreen from '../screens/retailer/WalletScreen';
 
 const Tab = createBottomTabNavigator<RetailerTabParamList>();
 const Stack = createNativeStackNavigator<RetailerStackParamList>();
@@ -63,6 +67,10 @@ export default function RetailerNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={RetailerTabs} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+      <Stack.Screen name="Cart" component={CartScreen} />
+      <Stack.Screen name="Checkout" component={CheckoutScreen} />
+      <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
+      <Stack.Screen name="Wallet" component={WalletScreen} />
     </Stack.Navigator>
   );
 }

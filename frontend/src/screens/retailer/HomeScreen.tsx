@@ -88,6 +88,12 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.navigate('Cart')}
+            >
+              <Icon name="shopping-cart" size={20} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton}>
               <Icon name="notifications" size={21} color="#fff" />
             </TouchableOpacity>

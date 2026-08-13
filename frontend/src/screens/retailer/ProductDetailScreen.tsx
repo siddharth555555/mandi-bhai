@@ -13,18 +13,22 @@ import { Icon } from '../../components/Icon';
 import { Packshot } from '../../components/Packshot';
 import { EmptyState } from '../../components/EmptyState';
 import { colors, radius, shadow } from '../../theme';
-import { getProduct, type ProductDetail } from '../../api/client';
+import { addCartItem, getProduct, type ProductDetail } from '../../api/client';
+import { useAuth } from '../../auth/AuthContext';
 import type { RetailerStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<RetailerStackParamList, 'ProductDetail'>;
 
 export default function ProductDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { token } = useAuth();
   const { productId } = route.params;
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addedId, setAddedId] = useState<string | null>(null);
 
   useEffect(() => {
     getProduct(productId)
@@ -35,6 +39,20 @@ export default function ProductDetailScreen({ route, navigation }: Props) {
       .finally(() => setLoading(false));
   }, [productId]);
 
+  const addToCart = async (listingId: string) => {
+    if (!token || addingId) return;
+    setAddingId(listingId);
+    try {
+      await addCartItem(token, listingId, 1);
+      setAddedId(listingId);
+      setTimeout(() => setAddedId((cur) => (cur === listingId ? null : cur)), 1500);
+    } catch (e) {
+      // surfaced inline via addedId staying null; keep it simple for v1
+    } finally {
+      setAddingId(null);
+    }
+  };
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -44,6 +62,9 @@ export default function ProductDetailScreen({ route, navigation }: Props) {
         <Text numberOfLines={1} style={styles.headerTitle}>
           {product?.name ?? 'Product'}
         </Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Cart')}>
+          <Icon name="shopping-cart" size={20} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -188,15 +209,29 @@ export default function ProductDetailScreen({ route, navigation }: Props) {
                     {s.savingsVsMrp != null && s.savingsVsMrp > 0 ? (
                       <Text style={styles.sellerSave}>save ₹{s.savingsVsMrp}</Text>
                     ) : null}
+                    {!isOut ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.addButton,
+                          addedId === s.listingId && styles.addButtonDone,
+                        ]}
+                        disabled={addingId === s.listingId}
+                        onPress={() => addToCart(s.listingId)}
+                      >
+                        {addingId === s.listingId ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Text style={styles.addButtonText}>
+                            {addedId === s.listingId ? 'Added' : 'Add to cart'}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 </View>
               );
             })
           )}
-
-          <Text style={styles.orderingHint}>
-            Ordering arrives with the cart module — prices and stock above are live.
-          </Text>
         </ScrollView>
       )}
     </View>
@@ -346,11 +381,15 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   sellerSave: { fontSize: 10.5, fontWeight: '800', color: colors.greenDark },
-  orderingHint: {
-    marginTop: 6,
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: colors.textGhost,
-    textAlign: 'center',
+  addButton: {
+    marginTop: 8,
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  addButtonDone: { backgroundColor: colors.greenDark },
+  addButtonText: { color: '#fff', fontWeight: '800', fontSize: 11.5 },
 });

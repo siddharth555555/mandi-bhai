@@ -11,11 +11,16 @@ export type RetailerTabParamList = {
 export type RetailerStackParamList = {
   Tabs: NavigatorScreenParams<RetailerTabParamList>;
   ProductDetail: { productId: string };
+  Cart: undefined;
+  Checkout: undefined;
+  OrderDetail: { orderId: string };
+  Wallet: undefined;
 };
 
 export type WholesalerTabParamList = {
   Inventory: undefined;
   Catalogue: undefined;
+  Orders: undefined;
   WholesalerProfile: undefined;
 };
 
@@ -23,6 +28,7 @@ export type WholesalerStackParamList = {
   Tabs: NavigatorScreenParams<WholesalerTabParamList>;
   AddListing: { productId: string; productName: string; packLabel: string };
   EditListing: { listingId: string };
+  WholesalerOrderDetail: { orderId: string };
 };
 
 export type RootStackParamList = {
@@ -32,4 +38,5 @@ export type RootStackParamList = {
   Retailer: NavigatorScreenParams<RetailerStackParamList>;
   Wholesaler: NavigatorScreenParams<WholesalerStackParamList>;
   MandiAdminHome: undefined;
+  RiderHome: undefined;
 };

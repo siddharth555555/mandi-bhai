@@ -37,8 +37,11 @@ nothing gets forgotten. Update this file whenever a new shortcut is taken.
       built — the listing carries a single flat price. This is the next module.
 - [ ] No price history or audit trail: changing a listing's price overwrites
       the old value with no record of what it was.
-- [ ] Stock is a plain integer with no reservation concept. Once ordering
-      exists, two retailers can both "buy" the last unit.
+- [x] ~~Stock is a plain integer with no reservation concept.~~ Checkout now
+      row-locks each `WholesalerListing` (`pessimistic_write`, sorted by id to
+      avoid deadlocks) and decrements stock inside the same transaction that
+      creates the order — see the Orders module in PLAN-order-delivery.md.
+      Stock is still released (incremented back) on reject/cancel/delivery-failed.
 - [ ] MOQ is captured and displayed but nothing enforces it yet (enforcement
       belongs to the cart).
 - [ ] Wholesalers can list products without being KYC-verified. If listing
@@ -49,14 +52,37 @@ nothing gets forgotten. Update this file whenever a new shortcut is taken.
       entities for dev speed. **Must switch to TypeORM migrations before this
       touches real/shared data** — synchronize can silently drop/alter columns.
 
-## Payments / KYC / Delivery (not started)
-- [ ] Payment gateway integration (Razorpay/Cashfree) — not started.
+## Orders / Delivery / Wallet (see PLAN-order-delivery.md)
+- [ ] **Payment gateway is stubbed — COD and Udhaar (credit) only.** No online
+      gateway (Razorpay/Cashfree) integration yet; `Payment` is its own entity
+      (decoupled from `Order`) specifically so a gateway can be swapped in later
+      without a schema change.
+- [ ] **Order/delivery notifications are stubbed.**
+      `backend/src/notifications/notification.service.ts` logs to the console
+      (`ConsoleNotificationDriver`) instead of sending real SMS/push for order
+      placed/confirmed/rejected/assigned/delivered events. Swap in a real
+      provider (same one chosen for OTP) before production.
+- [ ] Udhaar credit limit is still a fixed, manually-set-per-retailer value
+      (`PATCH /admin/wallet/:retailerProfileId/limit`) — the order-history-based
+      recommendation engine is explicitly deferred.
+- [ ] No repayment collection flow for Udhaar — a Mandi Admin can post a
+      `UdhaarTransaction` of type `repayment` (`POST
+      /admin/wallet/:retailerProfileId/repayment`) but there's no
+      retailer-facing "pay down my Udhaar" screen yet.
+- [ ] No automatic retry/re-assignment after a failed delivery — a Mandi Admin
+      re-assigns manually by assigning a fresh rider once a new attempt is warranted.
+- [ ] No rider trip batching — every delivery is assigned and tracked
+      independently, one order at a time.
+- [ ] Delivery/retailer/wholesaler addresses are free text with no geocoding —
+      no map view, no route optimization for riders.
+- [ ] No partial delivery / partial return handling — an order is delivered or
+      it fails, in full.
+- [ ] **Delivery Partner (rider) accounts are manual/seeded only**, like Mandi
+      Admins — no self-signup or invite flow yet. Add via `backend/src/seed/seed.ts`.
+
+## KYC (not started)
 - [ ] KYC document verification (Digilocker/Signzy/Karza) — not started, KYC
       screens will initially just store submitted data + doc uploads as "pending".
-- [ ] Delivery/logistics integration — platform-owned per product decision, not
-      designed yet.
-- [ ] Udhaar credit limit logic — starts as a fixed manually-set limit; the
-      order-history-based recommendation engine is explicitly deferred.
 
 ## Infra
 - [ ] No CI/CD, no staging environment yet.

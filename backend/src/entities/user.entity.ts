@@ -9,6 +9,7 @@ import {
 import { RetailerProfile } from './retailer-profile.entity';
 import { WholesalerProfile } from './wholesaler-profile.entity';
 import { MandiAdminProfile } from './mandi-admin-profile.entity';
+import { DeliveryPartnerProfile } from './delivery-partner-profile.entity';
 
 /**
  * A User is just an identity anchored to a phone number. All role-specific
@@ -31,6 +32,9 @@ export class User {
 
   @OneToOne(() => MandiAdminProfile, (p) => p.user, { nullable: true })
   mandiAdminProfile?: MandiAdminProfile;
+
+  @OneToOne(() => DeliveryPartnerProfile, (p) => p.user, { nullable: true })
+  deliveryPartnerProfile?: DeliveryPartnerProfile;
 
   @CreateDateColumn()
   createdAt: Date;

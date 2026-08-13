@@ -22,6 +22,7 @@ export default function CreateProfileScreen() {
   const { token, updateSession } = useAuth();
   const [role, setRole] = useState<Role | null>(null);
   const [shopName, setShopName] = useState('');
+  const [address, setAddress] = useState('');
   const [mandis, setMandis] = useState<Mandi[]>([]);
   const [mandiId, setMandiId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,8 +46,13 @@ export default function CreateProfileScreen() {
     try {
       const { token: newToken } =
         role === 'retailer'
-          ? await createRetailerProfile(token, shopName.trim())
-          : await createWholesalerProfile(token, shopName.trim(), mandiId!);
+          ? await createRetailerProfile(token, shopName.trim(), address.trim() || undefined)
+          : await createWholesalerProfile(
+              token,
+              shopName.trim(),
+              mandiId!,
+              address.trim() || undefined,
+            );
       await updateSession(newToken);
       // App.tsx routes to the right home screen once `user.profiles` updates.
     } catch (e) {
@@ -96,6 +102,18 @@ export default function CreateProfileScreen() {
         value={shopName}
         onChangeText={setShopName}
       />
+
+      <Text style={styles.label}>
+        {role === 'retailer' ? 'Shop address (for deliveries)' : 'Pickup address (for riders)'}
+      </Text>
+      <TextInput
+        style={[styles.input, styles.addressInput]}
+        placeholder="Shop/godown no, street, area, landmark"
+        value={address}
+        onChangeText={setAddress}
+        multiline
+      />
+      <Text style={styles.hint}>You can add or edit this later from Profile.</Text>
 
       {role === 'wholesaler' && (
         <>
@@ -178,6 +196,8 @@ const styles = StyleSheet.create({
   mandiRowActive: { borderColor: '#FF5436', backgroundColor: '#FFF3F0' },
   mandiName: { fontWeight: '800', fontSize: 15 },
   mandiCity: { color: '#6B6577', fontSize: 12, marginTop: 2 },
+  addressInput: { height: 76, paddingTop: 12, textAlignVertical: 'top' },
+  hint: { marginTop: 6, fontSize: 11.5, color: '#A49EAF', fontWeight: '600' },
   error: { marginTop: 14, color: '#E23B1E', fontWeight: '600' },
   button: {
     marginTop: 26,

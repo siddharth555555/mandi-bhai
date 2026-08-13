@@ -1,11 +1,11 @@
 /**
  * Manual seed script — creates sample mandis, Mandi Admins, wholesalers,
- * and retailers so the app has something to look at without manually
- * signing up through the UI every time the DB resets.
+ * retailers, and delivery partners so the app has something to look at
+ * without manually signing up through the UI every time the DB resets.
  *
- * Per product decision, Mandi Admin accounts are NOT self-signup (see
- * TODO.md). To add more of any kind, add an entry to the relevant SEEDS
- * array below and rerun:
+ * Per product decision, Mandi Admin and Delivery Partner accounts are NOT
+ * self-signup (see TODO.md). To add more of any kind, add an entry to the
+ * relevant SEEDS array below and rerun:
  *
  *   npm run seed
  *
@@ -21,6 +21,7 @@ import { User } from '../entities/user.entity';
 import { MandiAdminProfile } from '../entities/mandi-admin-profile.entity';
 import { RetailerProfile } from '../entities/retailer-profile.entity';
 import { WholesalerProfile } from '../entities/wholesaler-profile.entity';
+import { DeliveryPartnerProfile } from '../entities/delivery-partner-profile.entity';
 import { Category } from '../catalog/category.entity';
 import { Product } from '../catalog/product.entity';
 import {
@@ -32,6 +33,7 @@ import {
 import { normalisePack } from '../catalog/pack-unit';
 import { CATEGORY_SEEDS, PRODUCT_SEEDS } from './catalog-seed-data';
 import { WholesalerListing } from '../listings/wholesaler-listing.entity';
+import { UdhaarAccount } from '../wallet/udhaar-account.entity';
 
 /**
  * Rough ₹ per base unit (per gram / per ml / per count) by category, used
@@ -88,16 +90,90 @@ const ADMIN_SEEDS: Array<{ phone: string; mandiName: string }> = [
   { phone: '9999900003', mandiName: 'Koyambedu Mandi' },
 ];
 
-const RETAILER_SEEDS: Array<{ phone: string; shopName: string }> = [
-  { phone: '9000000001', shopName: 'Sharma Kirana Store' },
-  { phone: '9000000002', shopName: 'Verma General Store' },
-  { phone: '9000000003', shopName: 'Iyer Provisions' },
+const RETAILER_SEEDS: Array<{
+  phone: string;
+  shopName: string;
+  address: string;
+  udhaarLimit: number;
+}> = [
+  {
+    phone: '9000000001',
+    shopName: 'Sharma Kirana Store',
+    address: 'Shop 12, Model Town Market, Delhi',
+    udhaarLimit: 5000,
+  },
+  {
+    phone: '9000000002',
+    shopName: 'Verma General Store',
+    address: 'Shop 4, Sector 15 Market, Navi Mumbai',
+    udhaarLimit: 3000,
+  },
+  {
+    phone: '9000000003',
+    shopName: 'Iyer Provisions',
+    address: '22 Gandhi Road, T Nagar, Chennai',
+    udhaarLimit: 0, // deliberately left at 0 to exercise the "Udhaar not enabled" checkout path
+  },
 ];
 
-const WHOLESALER_SEEDS: Array<{ phone: string; shopName: string; mandiName: string }> = [
-  { phone: '9100000001', shopName: 'Gupta Traders', mandiName: 'Naya Bazaar Mandi' },
-  { phone: '9100000002', shopName: 'Patel Wholesale Co.', mandiName: 'Vashi APMC Mandi' },
-  { phone: '9100000003', shopName: 'Murugan Agro Traders', mandiName: 'Koyambedu Mandi' },
+const WHOLESALER_SEEDS: Array<{
+  phone: string;
+  shopName: string;
+  mandiName: string;
+  address: string;
+}> = [
+  {
+    phone: '9100000001',
+    shopName: 'Gupta Traders',
+    mandiName: 'Naya Bazaar Mandi',
+    address: 'Shed 8, Naya Bazaar Mandi, Delhi',
+  },
+  {
+    phone: '9100000002',
+    shopName: 'Patel Wholesale Co.',
+    mandiName: 'Vashi APMC Mandi',
+    address: 'Block C, Vashi APMC Mandi, Navi Mumbai',
+  },
+  {
+    phone: '9100000003',
+    shopName: 'Murugan Agro Traders',
+    mandiName: 'Koyambedu Mandi',
+    address: 'Stall 45, Koyambedu Mandi, Chennai',
+  },
+];
+
+// Platform-owned riders — manually seeded, mandi-scoped (see
+// PLAN-order-delivery.md §1, §8; no self-signup yet, same as Mandi Admins).
+const DELIVERY_PARTNER_SEEDS: Array<{
+  phone: string;
+  name: string;
+  vehicleInfo: string;
+  mandiName: string;
+}> = [
+  {
+    phone: '9200000001',
+    name: 'Ramesh Kumar',
+    vehicleInfo: 'Bike · DL01AB1234',
+    mandiName: 'Naya Bazaar Mandi',
+  },
+  {
+    phone: '9200000002',
+    name: 'Suresh Yadav',
+    vehicleInfo: 'Bike · DL02CD5678',
+    mandiName: 'Naya Bazaar Mandi',
+  },
+  {
+    phone: '9200000003',
+    name: 'Prakash Jadhav',
+    vehicleInfo: 'Auto · MH04EF9012',
+    mandiName: 'Vashi APMC Mandi',
+  },
+  {
+    phone: '9200000004',
+    name: 'Karthik Raja',
+    vehicleInfo: 'Bike · TN09GH3456',
+    mandiName: 'Koyambedu Mandi',
+  },
 ];
 
 async function getOrCreateUser(userRepo: Repository<User>, phone: string): Promise<User> {
@@ -116,6 +192,8 @@ async function seed() {
   const adminRepo = ds.getRepository(MandiAdminProfile);
   const retailerRepo = ds.getRepository(RetailerProfile);
   const wholesalerRepo = ds.getRepository(WholesalerProfile);
+  const deliveryPartnerRepo = ds.getRepository(DeliveryPartnerProfile);
+  const udhaarRepo = ds.getRepository(UdhaarAccount);
 
   // -- Mandis --
   const mandiByName = new Map<string, Mandi>();
@@ -160,8 +238,30 @@ async function seed() {
       continue;
     }
 
-    await retailerRepo.save(retailerRepo.create({ userId: user.id, shopName: r.shopName }));
+    await retailerRepo.save(
+      retailerRepo.create({ userId: user.id, shopName: r.shopName, address: r.address }),
+    );
     console.log(`Created Retailer: ${r.phone} -> ${r.shopName}`);
+  }
+
+  // -- Udhaar accounts (starter credit limits for the seeded retailers) --
+  for (const r of RETAILER_SEEDS) {
+    const user = await userRepo.findOne({ where: { phone: r.phone } });
+    if (!user) continue;
+    const retailer = await retailerRepo.findOne({ where: { userId: user.id } });
+    if (!retailer) continue;
+
+    const existing = await udhaarRepo.findOne({ where: { retailerProfileId: retailer.id } });
+    if (existing) continue;
+
+    await udhaarRepo.save(
+      udhaarRepo.create({
+        retailerProfileId: retailer.id,
+        creditLimit: r.udhaarLimit.toFixed(2),
+        outstandingBalance: '0.00',
+      }),
+    );
+    console.log(`Udhaar account for ${r.phone}: limit ₹${r.udhaarLimit}`);
   }
 
   // -- Wholesalers --
@@ -181,9 +281,41 @@ async function seed() {
     }
 
     await wholesalerRepo.save(
-      wholesalerRepo.create({ userId: user.id, shopName: w.shopName, mandiId: mandi.id }),
+      wholesalerRepo.create({
+        userId: user.id,
+        shopName: w.shopName,
+        mandiId: mandi.id,
+        address: w.address,
+      }),
     );
     console.log(`Created Wholesaler: ${w.phone} -> ${w.shopName} (${mandi.name})`);
+  }
+
+  // -- Delivery partners (riders) --
+  for (const d of DELIVERY_PARTNER_SEEDS) {
+    const mandi = mandiByName.get(d.mandiName);
+    if (!mandi) {
+      console.warn(`Skipping rider ${d.phone}: mandi "${d.mandiName}" not seeded`);
+      continue;
+    }
+
+    const user = await getOrCreateUser(userRepo, d.phone);
+
+    const existing = await deliveryPartnerRepo.findOne({ where: { userId: user.id } });
+    if (existing) {
+      console.log(`Delivery partner profile already exists for ${d.phone}`);
+      continue;
+    }
+
+    await deliveryPartnerRepo.save(
+      deliveryPartnerRepo.create({
+        userId: user.id,
+        name: d.name,
+        vehicleInfo: d.vehicleInfo,
+        mandiId: mandi.id,
+      }),
+    );
+    console.log(`Created Delivery Partner: ${d.phone} -> ${d.name} (${mandi.name})`);
   }
 
   // -- Categories --

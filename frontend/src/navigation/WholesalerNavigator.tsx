@@ -10,6 +10,8 @@ import InventoryScreen from '../screens/wholesaler/InventoryScreen';
 import CatalogueScreen from '../screens/wholesaler/CatalogueScreen';
 import WholesalerProfileScreen from '../screens/wholesaler/WholesalerProfileScreen';
 import ListingFormScreen from '../screens/wholesaler/ListingFormScreen';
+import WholesalerOrdersScreen from '../screens/wholesaler/WholesalerOrdersScreen';
+import WholesalerOrderDetailScreen from '../screens/wholesaler/WholesalerOrderDetailScreen';
 
 const Tab = createBottomTabNavigator<WholesalerTabParamList>();
 const Stack = createNativeStackNavigator<WholesalerStackParamList>();
@@ -17,12 +19,14 @@ const Stack = createNativeStackNavigator<WholesalerStackParamList>();
 const TAB_ICONS: Record<keyof WholesalerTabParamList, string> = {
   Inventory: 'inventory-2',
   Catalogue: 'sell',
+  Orders: 'receipt-long',
   WholesalerProfile: 'person',
 };
 
 const TAB_LABELS: Record<keyof WholesalerTabParamList, string> = {
   Inventory: 'Inventory',
   Catalogue: 'Catalogue',
+  Orders: 'Orders',
   WholesalerProfile: 'Profile',
 };
 
@@ -48,6 +52,7 @@ function WholesalerTabs() {
     >
       <Tab.Screen name="Inventory" component={InventoryScreen} />
       <Tab.Screen name="Catalogue" component={CatalogueScreen} />
+      <Tab.Screen name="Orders" component={WholesalerOrdersScreen} />
       <Tab.Screen name="WholesalerProfile" component={WholesalerProfileScreen} />
     </Tab.Navigator>
   );
@@ -59,6 +64,7 @@ export default function WholesalerNavigator() {
       <Stack.Screen name="Tabs" component={WholesalerTabs} />
       <Stack.Screen name="AddListing" component={ListingFormScreen} />
       <Stack.Screen name="EditListing" component={ListingFormScreen} />
+      <Stack.Screen name="WholesalerOrderDetail" component={WholesalerOrderDetailScreen} />
     </Stack.Navigator>
   );
 }
