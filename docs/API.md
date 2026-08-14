@@ -15,7 +15,11 @@ where noted public.
 |---|---|---|---|
 | POST | `/auth/otp/request` | public | Dev-stubbed — OTP returned in the response (`devOtp`), also logged |
 | POST | `/auth/otp/verify` | public | Returns JWT + every profile on the account |
-| POST | `/auth/profile` | authenticated | Creates a role profile (retailer/wholesaler) for the current user |
+| GET | `/auth/me` | authenticated | Get current user + all profiles |
+| POST | `/auth/profiles/retailer` | authenticated | Creates a retailer profile for the current user |
+| POST | `/auth/profiles/wholesaler` | authenticated | Creates a wholesaler profile for the current user |
+| PATCH | `/auth/profiles/retailer/address` | authenticated | Updates retailer delivery address |
+| PATCH | `/auth/profiles/wholesaler/address` | authenticated | Updates wholesaler shop address |
 
 ## Mandis (`mandis/`)
 
@@ -31,6 +35,15 @@ where noted public.
 | GET | `/products` | public | Paginated search; each row's `offer` is the anonymised platform price (`sellingPrice`, `mandiAverage`, `savingsVsAverage`, `moq`, `stockStatus`) — never a wholesaler name or raw quote |
 | GET | `/products/:id` | public | Single product + its `offer` block |
 | POST/PATCH `/admin/*` | super_admin | Master catalogue CRUD — see `admin-catalog.controller.ts` |
+
+## Listings (`wholesaler/listings/`)
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| GET | `/wholesaler/listings` | wholesaler | List your own product listings (inventory) |
+| POST | `/wholesaler/listings` | wholesaler | Create a new listing; master products go live immediately, new products go to review (Phase 3) |
+| PATCH | `/wholesaler/listings/:id` | wholesaler | Update price, stock, or MOQ for a listing |
+| DELETE | `/wholesaler/listings/:id` | wholesaler | Remove a listing |
 
 ## Pricing (`pricing/`)
 
@@ -64,9 +77,9 @@ where noted public.
 
 | Method | Path | Role | Notes |
 |---|---|---|---|
-| GET | `/admin/deliveries/unassigned` | mandi_admin | |
-| GET | `/admin/deliveries/partners` | mandi_admin | |
-| POST | `/admin/deliveries/:id/assign` | mandi_admin | |
+| GET | `/admin/deliveries` | mandi_admin | List unassigned deliveries |
+| GET | `/admin/deliveries/partners` | mandi_admin | List delivery partners |
+| POST | `/admin/deliveries/:id/assign` | mandi_admin | Assign a delivery to a partner |
 | GET | `/rider/deliveries` | delivery_partner | |
 | POST | `/rider/deliveries/:id/picked-up` | delivery_partner | |
 | POST | `/rider/deliveries/:id/delivered` | delivery_partner | Body `{ paymentCollected? }` — COD only; prepaid orders are already settled at checkout |

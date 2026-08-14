@@ -4,6 +4,11 @@ Every stub, mock, or "decide later" item across the project is tracked here so
 nothing gets forgotten. Update this file whenever a new shortcut is taken.
 
 ## Auth / Users
+- [ ] **SMS OTP delivery is stubbed.** `backend/src/auth/otp.service.ts` generates
+      and stores an OTP but does not send an SMS — it's returned directly in the
+      `/auth/otp/request` response (dev-only) and logged to the console (see
+      `TODO(sms)` comment in the service). Swap in a real provider (MSG91 / Gupshup
+      / Twilio) before anything but local dev.
 - [ ] **Mandi Admin accounts are manual/seeded only** — no self-signup or invite
       flow yet. New admins must be added via `backend/src/seed/seed.ts`. Revisit
       if/when self-serve admin onboarding is needed.
