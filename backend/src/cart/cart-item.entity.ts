@@ -14,11 +14,13 @@ import { Product } from '../catalog/product.entity';
 /**
  * References a master `Product`, not a wholesaler's listing: under the
  * managed-reseller model the retailer buys from the platform and never
- * chooses a supplier. Sourcing is decided at checkout.
+ * chooses a supplier. Sourcing is decided later, at allocation time.
  *
- * Deliberately does NOT snapshot price/MOQ — the cart re-prices live through
- * `PricingService` so it reflects reality up to the moment of checkout.
- * Checkout is where a frozen copy gets taken (onto OrderItem).
+ * `snapshotPrice`/`snapshotMoq`/`snapshotAt` are the price/MOQ the retailer
+ * last explicitly saw and accepted (set on add, and re-synced by
+ * `POST /cart/validate`). Reads (`GET /cart`) compare this snapshot against
+ * a fresh `PricingService` call to detect drift — they never overwrite it
+ * silently (PRD §9.2, S7).
  */
 @Entity('cart_items')
 @Unique('uq_cart_item_product', ['cartId', 'productId'])
@@ -41,6 +43,15 @@ export class CartItem {
 
   @Column({ type: 'int' })
   quantity: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  snapshotPrice: string;
+
+  @Column({ type: 'int' })
+  snapshotMoq: number;
+
+  @Column({ type: 'timestamp' })
+  snapshotAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
