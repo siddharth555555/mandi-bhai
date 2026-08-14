@@ -7,11 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './category.entity';
 import { Product, ProductStatus } from './product.entity';
-import {
-  ListingStatus,
-  WholesalerListing,
-  stockStatusFor,
-} from '../listings/wholesaler-listing.entity';
+import { StockStatus } from '../listings/wholesaler-listing.entity';
+import { PlatformPrice, PricingService } from '../pricing/pricing.service';
 import {
   AliasLocale,
   AliasSource,
@@ -28,6 +25,33 @@ import {
 
 const DEFAULT_LIMIT = 20;
 
+/**
+ * The retailer-facing shape of a price. Deliberately narrow: the platform is
+ * the seller, so no supplier identity, no seller count, and above all no raw
+ * sourcing quote — that plus the selling price would reveal the markup
+ * exactly. See the visibility matrix in PRD §2.2.
+ */
+function toRetailerOffer(price?: PlatformPrice) {
+  if (!price || !price.available) {
+    return {
+      available: false,
+      sellingPrice: null,
+      mandiAverage: null,
+      savingsVsAverage: null,
+      moq: 1,
+      stockStatus: StockStatus.OUT,
+    };
+  }
+  return {
+    available: true,
+    sellingPrice: price.sellingPrice,
+    mandiAverage: price.mandiAverage,
+    savingsVsAverage: price.savingsVsAverage,
+    moq: price.effectiveMoq,
+    stockStatus: price.stockStatus,
+  };
+}
+
 @Injectable()
 export class CatalogService {
   constructor(
@@ -35,8 +59,7 @@ export class CatalogService {
     @InjectRepository(Product) private readonly products: Repository<Product>,
     @InjectRepository(ProductAlias)
     private readonly aliases: Repository<ProductAlias>,
-    @InjectRepository(WholesalerListing)
-    private readonly listings: Repository<WholesalerListing>,
+    private readonly pricing: PricingService,
   ) {}
 
   listCategories() {
@@ -82,52 +105,20 @@ export class CatalogService {
       .take(limit)
       .getManyAndCount();
 
-    // Fetch seller aggregates for just this page rather than joining them into
-    // the main query — keeps the search SQL simple and avoids row explosion.
-    const offers = await this.offerSummaryFor(rows.map((p) => p.id));
+    // Price this page in one batch rather than joining into the main query —
+    // keeps the search SQL simple and avoids row explosion.
+    const prices = await this.pricing.priceForMany(rows.map((p) => p.id));
 
     return {
       items: rows.map((p) => ({
         ...this.toProductView(p),
-        offers: offers.get(p.id) ?? { sellerCount: 0, lowestPrice: null },
+        offer: toRetailerOffer(prices.get(p.id)),
       })),
       page,
       limit,
       total,
       totalPages: Math.ceil(total / limit),
     };
-  }
-
-  /** productId -> { sellerCount, lowestPrice } across in-stock active listings. */
-  private async offerSummaryFor(productIds: string[]) {
-    const summary = new Map<
-      string,
-      { sellerCount: number; lowestPrice: number | null }
-    >();
-    if (productIds.length === 0) return summary;
-
-    const rows = await this.listings
-      .createQueryBuilder('l')
-      .select('l.productId', 'productId')
-      .addSelect('COUNT(*)', 'sellerCount')
-      .addSelect('MIN(l.pricePerUnit)', 'lowestPrice')
-      .where('l.productId IN (:...productIds)', { productIds })
-      .andWhere('l.status = :status', { status: ListingStatus.ACTIVE })
-      .andWhere('l.stockUnits > 0')
-      .groupBy('l.productId')
-      .getRawMany<{
-        productId: string;
-        sellerCount: string;
-        lowestPrice: string;
-      }>();
-
-    for (const r of rows) {
-      summary.set(r.productId, {
-        sellerCount: Number(r.sellerCount),
-        lowestPrice: Number(r.lowestPrice),
-      });
-    }
-    return summary;
   }
 
   async getProduct(id: string) {
@@ -145,47 +136,8 @@ export class CatalogService {
         locale: a.locale,
         source: a.source,
       })),
-      sellers: await this.sellersFor(id),
+      offer: toRetailerOffer(await this.pricing.priceFor(id)),
     };
-  }
-
-  /**
-   * Every wholesaler offering this product, cheapest first. In-stock sellers
-   * rank above out-of-stock ones regardless of price, since an unbuyable
-   * cheap listing shouldn't win the "best price" badge.
-   */
-  private async sellersFor(productId: string) {
-    const rows = await this.listings.find({
-      where: { productId, status: ListingStatus.ACTIVE },
-      relations: { wholesaler: true, mandi: true },
-    });
-
-    const sorted = rows.sort((a, b) => {
-      const aOut = a.stockUnits <= 0 ? 1 : 0;
-      const bOut = b.stockUnits <= 0 ? 1 : 0;
-      if (aOut !== bOut) return aOut - bOut;
-      return Number(a.pricePerUnit) - Number(b.pricePerUnit);
-    });
-
-    const bestId = sorted.find((r) => r.stockUnits > 0)?.id ?? null;
-
-    return sorted.map((r) => {
-      const price = Number(r.pricePerUnit);
-      const mrp = r.mrp != null ? Number(r.mrp) : null;
-      return {
-        listingId: r.id,
-        wholesalerName: r.wholesaler?.shopName ?? 'Wholesaler',
-        mandiName: r.mandi?.name ?? null,
-        mandiCity: r.mandi?.city ?? null,
-        pricePerUnit: price,
-        mrp,
-        savingsVsMrp: mrp != null ? Math.round((mrp - price) * 100) / 100 : null,
-        moq: r.moq,
-        stockUnits: r.stockUnits,
-        stockStatus: stockStatusFor(r.stockUnits),
-        isBestPrice: r.id === bestId,
-      };
-    });
   }
 
   async createProduct(dto: CreateProductDto) {

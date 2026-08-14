@@ -20,15 +20,16 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 
 /**
- * Mandi Admin catalogue management.
+ * Master catalogue management — super admin only.
  *
- * Note: master products are platform-wide, not mandi-scoped, so any mandi
- * admin edits the shared catalogue. That's intentional for a *master*
- * catalogue but does mean cross-mandi blast radius — see PLAN-products-kyc.md
- * §1 if that needs tightening later.
+ * Products are platform-wide, so this was previously `mandi_admin`: any one
+ * mandi's admin could edit the shared catalogue and hit every other mandi.
+ * PLAN-products-kyc.md §1 flagged that blast radius without resolving it;
+ * under the managed-reseller model the catalogue is explicitly super-admin
+ * owned, which closes it.
  */
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('mandi_admin')
+@Roles('super_admin')
 @Controller('admin')
 export class AdminCatalogController {
   constructor(private readonly catalog: CatalogService) {}

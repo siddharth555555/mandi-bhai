@@ -16,6 +16,7 @@ const PROFILE_RELATIONS = {
   wholesalerProfile: true,
   mandiAdminProfile: true,
   deliveryPartnerProfile: true,
+  superAdminProfile: true,
 };
 
 @Injectable()
@@ -130,6 +131,7 @@ export class AuthService {
     if (user.wholesalerProfile) profiles.push('wholesaler');
     if (user.mandiAdminProfile) profiles.push('mandi_admin');
     if (user.deliveryPartnerProfile) profiles.push('delivery_partner');
+    if (user.superAdminProfile) profiles.push('super_admin');
 
     const payload: JwtPayload = { sub: user.id, phone: user.phone, profiles };
     return this.jwtService.sign(payload);
@@ -144,6 +146,7 @@ export class AuthService {
         wholesaler: user.wholesalerProfile ?? null,
         mandiAdmin: user.mandiAdminProfile ?? null,
         deliveryPartner: user.deliveryPartnerProfile ?? null,
+        superAdmin: user.superAdminProfile ?? null,
       },
     };
   }

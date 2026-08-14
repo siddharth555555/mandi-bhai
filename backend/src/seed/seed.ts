@@ -33,7 +33,7 @@ import {
 import { normalisePack } from '../catalog/pack-unit';
 import { CATEGORY_SEEDS, PRODUCT_SEEDS } from './catalog-seed-data';
 import { WholesalerListing } from '../listings/wholesaler-listing.entity';
-import { UdhaarAccount } from '../wallet/udhaar-account.entity';
+import { SuperAdminProfile } from '../entities/super-admin-profile.entity';
 
 /**
  * Rough ₹ per base unit (per gram / per ml / per count) by category, used
@@ -83,6 +83,11 @@ const MANDI_SEEDS = [
   { name: 'Ghazipur Mandi', city: 'Delhi' },
 ];
 
+// Platform-wide, not mandi-scoped. Owns the catalogue, markups and margin.
+const SUPER_ADMIN_SEEDS: Array<{ phone: string; name: string }> = [
+  { phone: '9999000001', name: 'Platform Admin' },
+];
+
 // phone -> which seeded mandi (by name) this admin manages
 const ADMIN_SEEDS: Array<{ phone: string; mandiName: string }> = [
   { phone: '9999900001', mandiName: 'Naya Bazaar Mandi' },
@@ -94,25 +99,21 @@ const RETAILER_SEEDS: Array<{
   phone: string;
   shopName: string;
   address: string;
-  udhaarLimit: number;
 }> = [
   {
     phone: '9000000001',
     shopName: 'Sharma Kirana Store',
     address: 'Shop 12, Model Town Market, Delhi',
-    udhaarLimit: 5000,
   },
   {
     phone: '9000000002',
     shopName: 'Verma General Store',
     address: 'Shop 4, Sector 15 Market, Navi Mumbai',
-    udhaarLimit: 3000,
   },
   {
     phone: '9000000003',
     shopName: 'Iyer Provisions',
     address: '22 Gandhi Road, T Nagar, Chennai',
-    udhaarLimit: 0, // deliberately left at 0 to exercise the "Udhaar not enabled" checkout path
   },
 ];
 
@@ -193,7 +194,7 @@ async function seed() {
   const retailerRepo = ds.getRepository(RetailerProfile);
   const wholesalerRepo = ds.getRepository(WholesalerProfile);
   const deliveryPartnerRepo = ds.getRepository(DeliveryPartnerProfile);
-  const udhaarRepo = ds.getRepository(UdhaarAccount);
+  const superAdminRepo = ds.getRepository(SuperAdminProfile);
 
   // -- Mandis --
   const mandiByName = new Map<string, Mandi>();
@@ -206,6 +207,22 @@ async function seed() {
       console.log(`Mandi already exists: ${mandi.name} (${mandi.id})`);
     }
     mandiByName.set(m.name, mandi);
+  }
+
+  // -- Super Admins --
+  for (const s of SUPER_ADMIN_SEEDS) {
+    const user = await getOrCreateUser(userRepo, s.phone);
+
+    const existing = await superAdminRepo.findOne({ where: { userId: user.id } });
+    if (existing) {
+      console.log(`Super Admin profile already exists for ${s.phone}`);
+      continue;
+    }
+
+    await superAdminRepo.save(
+      superAdminRepo.create({ userId: user.id, name: s.name }),
+    );
+    console.log(`Created Super Admin: ${s.phone} -> ${s.name}`);
   }
 
   // -- Mandi Admins --
@@ -242,26 +259,6 @@ async function seed() {
       retailerRepo.create({ userId: user.id, shopName: r.shopName, address: r.address }),
     );
     console.log(`Created Retailer: ${r.phone} -> ${r.shopName}`);
-  }
-
-  // -- Udhaar accounts (starter credit limits for the seeded retailers) --
-  for (const r of RETAILER_SEEDS) {
-    const user = await userRepo.findOne({ where: { phone: r.phone } });
-    if (!user) continue;
-    const retailer = await retailerRepo.findOne({ where: { userId: user.id } });
-    if (!retailer) continue;
-
-    const existing = await udhaarRepo.findOne({ where: { retailerProfileId: retailer.id } });
-    if (existing) continue;
-
-    await udhaarRepo.save(
-      udhaarRepo.create({
-        retailerProfileId: retailer.id,
-        creditLimit: r.udhaarLimit.toFixed(2),
-        outstandingBalance: '0.00',
-      }),
-    );
-    console.log(`Udhaar account for ${r.phone}: limit ₹${r.udhaarLimit}`);
   }
 
   // -- Wholesalers --

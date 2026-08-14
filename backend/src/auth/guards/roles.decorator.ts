@@ -1,6 +1,11 @@
 import { SetMetadata } from '@nestjs/common';
 
-export type AppRole = 'retailer' | 'wholesaler' | 'mandi_admin' | 'delivery_partner';
+export type AppRole =
+  | 'retailer'
+  | 'wholesaler'
+  | 'mandi_admin'
+  | 'delivery_partner'
+  | 'super_admin';
 
 export const ROLES_KEY = 'roles';
 

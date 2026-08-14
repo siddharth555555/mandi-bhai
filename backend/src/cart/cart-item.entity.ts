@@ -9,15 +9,19 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Cart } from './cart.entity';
-import { WholesalerListing } from '../listings/wholesaler-listing.entity';
+import { Product } from '../catalog/product.entity';
 
 /**
- * Deliberately does NOT snapshot price/MOQ/stock — the cart always reads
- * live off `WholesalerListing` so it reflects reality up to the moment of
- * checkout. Checkout is where a frozen copy gets taken (onto OrderItem).
+ * References a master `Product`, not a wholesaler's listing: under the
+ * managed-reseller model the retailer buys from the platform and never
+ * chooses a supplier. Sourcing is decided at checkout.
+ *
+ * Deliberately does NOT snapshot price/MOQ — the cart re-prices live through
+ * `PricingService` so it reflects reality up to the moment of checkout.
+ * Checkout is where a frozen copy gets taken (onto OrderItem).
  */
 @Entity('cart_items')
-@Unique('uq_cart_item_listing', ['cartId', 'wholesalerListingId'])
+@Unique('uq_cart_item_product', ['cartId', 'productId'])
 @Index(['cartId'])
 export class CartItem {
   @PrimaryGeneratedColumn('uuid')
@@ -29,11 +33,11 @@ export class CartItem {
   @Column()
   cartId: string;
 
-  @ManyToOne(() => WholesalerListing, { onDelete: 'CASCADE' })
-  wholesalerListing: WholesalerListing;
+  @ManyToOne(() => Product, { onDelete: 'CASCADE' })
+  product: Product;
 
   @Column({ type: 'uuid' })
-  wholesalerListingId: string;
+  productId: string;
 
   @Column({ type: 'int' })
   quantity: number;

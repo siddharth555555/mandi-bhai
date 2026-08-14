@@ -13,11 +13,14 @@ import { OrdersModule } from './orders/orders.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { WalletModule } from './wallet/wallet.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PricingModule } from './pricing/pricing.module';
 import { User } from './entities/user.entity';
 import { RetailerProfile } from './entities/retailer-profile.entity';
 import { WholesalerProfile } from './entities/wholesaler-profile.entity';
 import { MandiAdminProfile } from './entities/mandi-admin-profile.entity';
 import { DeliveryPartnerProfile } from './entities/delivery-partner-profile.entity';
+import { SuperAdminProfile } from './entities/super-admin-profile.entity';
+import { ProductMarkup } from './pricing/product-markup.entity';
 import { Mandi } from './mandis/mandi.entity';
 import { OtpRequest } from './auth/otp-request.entity';
 import { Category } from './catalog/category.entity';
@@ -53,6 +56,8 @@ import { Payment } from './wallet/payment.entity';
           WholesalerProfile,
           MandiAdminProfile,
           DeliveryPartnerProfile,
+          SuperAdminProfile,
+          ProductMarkup,
           Mandi,
           OtpRequest,
           Category,
@@ -77,6 +82,7 @@ import { Payment } from './wallet/payment.entity';
     AuthModule,
     MandisModule,
     CatalogModule,
+    PricingModule,
     ListingsModule,
     CartModule,
     OrdersModule,
