@@ -11,7 +11,6 @@ import { ListingsModule } from './listings/listings.module';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { DeliveryModule } from './delivery/delivery.module';
-import { WalletModule } from './wallet/wallet.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PricingModule } from './pricing/pricing.module';
 import { User } from './entities/user.entity';
@@ -32,6 +31,9 @@ import { CartItem } from './cart/cart-item.entity';
 import { Order } from './orders/order.entity';
 import { OrderItem } from './orders/order-item.entity';
 import { Delivery } from './delivery/delivery.entity';
+// Parked, not deleted — PRD §9.4: table retained, no write path, no UI.
+// Kept registered so the schema (and the vision-tier ledger design)
+// survive; nothing in the codebase writes to these anymore.
 import { UdhaarAccount } from './wallet/udhaar-account.entity';
 import { UdhaarTransaction } from './wallet/udhaar-transaction.entity';
 import { Payment } from './wallet/payment.entity';
@@ -69,6 +71,9 @@ import { Payment } from './wallet/payment.entity';
           Order,
           OrderItem,
           Delivery,
+          // Parked, not deleted — PRD §9.4: table retained, no write path, no
+          // UI. Kept registered so the schema (and the vision-tier ledger
+          // design) survive; nothing in the codebase writes to these anymore.
           UdhaarAccount,
           UdhaarTransaction,
           Payment,
@@ -87,7 +92,6 @@ import { Payment } from './wallet/payment.entity';
     CartModule,
     OrdersModule,
     DeliveryModule,
-    WalletModule,
     NotificationsModule,
   ],
   controllers: [AppController],

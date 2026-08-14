@@ -20,9 +20,10 @@ export enum PaymentStatus {
  * Its own table (rather than columns on Order) so a future gateway-based
  * method slots in without an Order schema change — same swappable-driver
  * instinct as StorageService in PLAN-products-kyc.md. No online gateway
- * (Razorpay/Cashfree) is wired up in this module — COD and Udhaar only,
- * per product decision; see NotificationService for the same "stub now,
- * swap later" pattern applied to notifications.
+ * (Razorpay/Cashfree) is wired up directly — `method` is `cod | prepaid`,
+ * with prepaid running through the stubbed `StubGatewayDriver` (see
+ * `payment-gateway.driver.ts`); see NotificationService for the same
+ * "stub now, swap later" pattern applied to notifications.
  */
 @Entity('payments')
 export class Payment {
