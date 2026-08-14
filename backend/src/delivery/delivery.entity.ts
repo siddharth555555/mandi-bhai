@@ -24,8 +24,9 @@ export enum DeliveryStatus {
 /**
  * Its own table rather than fields on Order because delivery has a
  * different owner (Mandi Admin / rider) and a different lifecycle clock —
- * see PLAN-order-delivery.md §2. Created the moment a wholesaler marks an
- * order "packed".
+ * see PLAN-order-delivery.md §2. Nothing currently creates a row here —
+ * the old "wholesaler marks packed" trigger was removed along with the
+ * per-wholesaler order model; a PO-pickup-based trigger is not yet built.
  */
 @Entity('deliveries')
 @Index(['mandiId'])

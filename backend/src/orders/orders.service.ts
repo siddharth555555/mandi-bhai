@@ -47,7 +47,6 @@ export class OrdersService {
     @InjectRepository(Order) private readonly orders: Repository<Order>,
     @InjectRepository(OrderItem)
     private readonly orderItems: Repository<OrderItem>,
-    @InjectRepository(Payment) private readonly payments: Repository<Payment>,
     private readonly pricing: PricingService,
     private readonly tokens: CartPriceTokenService,
     private readonly gateway: StubGatewayDriver,

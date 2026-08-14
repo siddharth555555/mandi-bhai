@@ -38,11 +38,11 @@ nothing gets forgotten. Update this file whenever a new shortcut is taken.
       built — the listing carries a single flat price. This is the next module.
 - [ ] No price history or audit trail: changing a listing's price overwrites
       the old value with no record of what it was.
-- [x] ~~Stock is a plain integer with no reservation concept.~~ Checkout now
-      row-locks each `WholesalerListing` (`pessimistic_write`, sorted by id to
-      avoid deadlocks) and decrements stock inside the same transaction that
-      creates the order — see the Orders module in PLAN-order-delivery.md.
-      Stock is still released (incremented back) on reject/cancel/delivery-failed.
+- [ ] Stock is a plain integer with no reservation concept. Checkout no
+      longer touches wholesaler stock at all (the old row-lock/decrement/
+      release mechanism was removed when checkout stopped choosing a
+      wholesaler — see `docs/superpowers/plans/2026-08-14-phase0-plan-a-cart-checkout-foundation.md`).
+      Stock reservation belongs at the allocation/sourcing layer, not yet built.
 - [ ] MOQ is enforced at cart-validate and checkout (both re-check live MOQ), but there is still no automatic allocation engine — sourcing/MOQ-fit at batch time is unbuilt (see PLAN doc for the pivot, PRD §10).
 - [ ] Wholesalers can list products without being KYC-verified. If listing
       should be gated on verification, wire that in during Phase 4.
@@ -71,24 +71,19 @@ nothing gets forgotten. Update this file whenever a new shortcut is taken.
       is `cod | prepaid`; prepaid runs through a stub gateway
       (`StubGatewayDriver`) that always succeeds in dev — no real gateway
       wired up.
+- [ ] **Frontend is fully desynced from this pivot.** `frontend/src/api/client.ts`
+      still sends `wholesalerListingId` to cart endpoints, declares
+      `PaymentMethod` as `cod | udhaar`, expects an array of orders back from
+      checkout instead of one order, and several retailer screens render
+      `wholesalerName`. Every retailer flow in the app is currently broken
+      against this backend. Frontend sync is a separate, not-yet-started plan.
 
 ## Orders / Delivery / Wallet (see PLAN-order-delivery.md)
-- [ ] **Payment gateway is stubbed — COD and Udhaar (credit) only.** No online
-      gateway (Razorpay/Cashfree) integration yet; `Payment` is its own entity
-      (decoupled from `Order`) specifically so a gateway can be swapped in later
-      without a schema change.
 - [ ] **Order/delivery notifications are stubbed.**
       `backend/src/notifications/notification.service.ts` logs to the console
       (`ConsoleNotificationDriver`) instead of sending real SMS/push for order
       placed/confirmed/rejected/assigned/delivered events. Swap in a real
       provider (same one chosen for OTP) before production.
-- [ ] Udhaar credit limit is still a fixed, manually-set-per-retailer value
-      (`PATCH /admin/wallet/:retailerProfileId/limit`) — the order-history-based
-      recommendation engine is explicitly deferred.
-- [ ] No repayment collection flow for Udhaar — a Mandi Admin can post a
-      `UdhaarTransaction` of type `repayment` (`POST
-      /admin/wallet/:retailerProfileId/repayment`) but there's no
-      retailer-facing "pay down my Udhaar" screen yet.
 - [ ] No automatic retry/re-assignment after a failed delivery — a Mandi Admin
       re-assigns manually by assigning a fresh rider once a new attempt is warranted.
 - [ ] No rider trip batching — every delivery is assigned and tracked
