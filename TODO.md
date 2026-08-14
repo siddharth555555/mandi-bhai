@@ -4,10 +4,6 @@ Every stub, mock, or "decide later" item across the project is tracked here so
 nothing gets forgotten. Update this file whenever a new shortcut is taken.
 
 ## Auth / Users
-- [ ] **SMS OTP delivery is stubbed.** `backend/src/auth/otp.service.ts` generates
-      and stores an OTP but does not send an SMS — it's returned directly in the
-      `/auth/otp/request` response (dev-only) and logged to the console. Swap in
-      a real provider (MSG91 / Gupshup / Twilio) before anything but local dev.
 - [ ] **Mandi Admin accounts are manual/seeded only** — no self-signup or invite
       flow yet. New admins must be added via `backend/src/seed/seed.ts`. Revisit
       if/when self-serve admin onboarding is needed.
@@ -42,8 +38,7 @@ nothing gets forgotten. Update this file whenever a new shortcut is taken.
       avoid deadlocks) and decrements stock inside the same transaction that
       creates the order — see the Orders module in PLAN-order-delivery.md.
       Stock is still released (incremented back) on reject/cancel/delivery-failed.
-- [ ] MOQ is captured and displayed but nothing enforces it yet (enforcement
-      belongs to the cart).
+- [ ] MOQ is enforced at cart-validate and checkout (both re-check live MOQ), but there is still no automatic allocation engine — sourcing/MOQ-fit at batch time is unbuilt (see PLAN doc for the pivot, PRD §10).
 - [ ] Wholesalers can list products without being KYC-verified. If listing
       should be gated on verification, wire that in during Phase 4.
 
@@ -51,6 +46,26 @@ nothing gets forgotten. Update this file whenever a new shortcut is taken.
 - [ ] `synchronize: true` in `backend/src/app.module.ts` auto-creates tables from
       entities for dev speed. **Must switch to TypeORM migrations before this
       touches real/shared data** — synchronize can silently drop/alter columns.
+
+## Orders / Checkout (pivot in progress — see `docs/superpowers/plans/2026-08-14-phase0-plan-a-cart-checkout-foundation.md`)
+- [x] ~~Retailer picks a wholesaler per listing.~~ Checkout now creates one
+      customer `Order`, no wholesaler chosen — sourcing is deferred entirely.
+- [ ] **No allocation/sourcing engine yet.** Nothing assigns a wholesaler to
+      a placed order. The next plan adds `PurchaseOrder`, the cheapest-
+      in-stock-meeting-MOQ allocator, and re-source-on-shortfall.
+- [ ] **No cutoff/batching yet.** `Order.cancelOrder` allows cancellation
+      any time the order is `placed` — there is no cutoff to make that the
+      commitment point (PRD D7). Do not treat this as final behaviour.
+- [ ] **Wholesaler-side order management was removed**, not rebuilt.
+      `wholesaler/orders*` operated on the old per-wholesaler `Order` shape;
+      its replacement is a `PurchaseOrder` surface, not yet built.
+- [ ] **Delivery creation has no trigger.** The old one (`wholesaler marks
+      packed`) was removed with the wholesaler order flow. Nothing currently
+      creates a `Delivery` row.
+- [ ] Udhaar/wallet fully removed from checkout and delivery. `PaymentMethod`
+      is `cod | prepaid`; prepaid runs through a stub gateway
+      (`StubGatewayDriver`) that always succeeds in dev — no real gateway
+      wired up.
 
 ## Orders / Delivery / Wallet (see PLAN-order-delivery.md)
 - [ ] **Payment gateway is stubbed — COD and Udhaar (credit) only.** No online
