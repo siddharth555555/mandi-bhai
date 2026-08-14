@@ -1,25 +1,13 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Delivery, DeliveryStatus } from './delivery.entity';
-import {
-  DeliveryPartnerProfile,
-  DeliveryPartnerStatus,
-} from '../entities/delivery-partner-profile.entity';
+import { DeliveryPartnerProfile, DeliveryPartnerStatus } from '../entities/delivery-partner-profile.entity';
 import { MandiAdminProfile } from '../entities/mandi-admin-profile.entity';
 import { RetailerProfile } from '../entities/retailer-profile.entity';
 import { User } from '../entities/user.entity';
 import { Order, OrderPaymentStatus, OrderStatus, PaymentMethod } from '../orders/order.entity';
-import { OrderItem } from '../orders/order-item.entity';
-import { WholesalerListing } from '../listings/wholesaler-listing.entity';
 import { Payment, PaymentStatus } from '../wallet/payment.entity';
-import { UdhaarAccount } from '../wallet/udhaar-account.entity';
-import { UdhaarTransaction, UdhaarTransactionType } from '../wallet/udhaar-transaction.entity';
 import { NotificationService } from '../notifications/notification.service';
 import { AssignDeliveryDto, FailDeliveryDto, MarkDeliveredDto } from './dto/delivery.dto';
 
@@ -36,14 +24,6 @@ export class DeliveryService {
     private readonly retailers: Repository<RetailerProfile>,
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Order) private readonly orders: Repository<Order>,
-    @InjectRepository(OrderItem) private readonly orderItems: Repository<OrderItem>,
-    @InjectRepository(WholesalerListing)
-    private readonly listings: Repository<WholesalerListing>,
-    @InjectRepository(Payment) private readonly payments: Repository<Payment>,
-    @InjectRepository(UdhaarAccount)
-    private readonly udhaarAccounts: Repository<UdhaarAccount>,
-    @InjectRepository(UdhaarTransaction)
-    private readonly udhaarTransactions: Repository<UdhaarTransaction>,
     private readonly notifications: NotificationService,
   ) {}
 
@@ -76,7 +56,7 @@ export class DeliveryService {
     const admin = await this.requireMandiAdmin(userId);
     const rows = await this.deliveries.find({
       where: { mandiId: admin.mandiId, status: DeliveryStatus.UNASSIGNED },
-      relations: { order: { retailerProfile: true, wholesalerProfile: true } },
+      relations: { order: { retailerProfile: true } },
       order: { createdAt: 'ASC' },
     });
     return rows.map((d) => this.toDeliveryView(d));
@@ -141,7 +121,7 @@ export class DeliveryService {
     const rider = await this.requireRider(userId);
     const rows = await this.deliveries.find({
       where: { deliveryPartnerId: rider.id },
-      relations: { order: { retailerProfile: true, wholesalerProfile: true } },
+      relations: { order: { retailerProfile: true } },
       order: { assignedAt: 'DESC' },
     });
     return rows.map((d) => this.toDeliveryView(d));
@@ -150,7 +130,7 @@ export class DeliveryService {
   private async requireOwnedByRider(riderId: string, deliveryId: string) {
     const delivery = await this.deliveries.findOne({
       where: { id: deliveryId, deliveryPartnerId: riderId },
-      relations: { order: { retailerProfile: true, wholesalerProfile: true } },
+      relations: { order: { retailerProfile: true } },
     });
     if (!delivery) throw new NotFoundException('Delivery not found');
     return delivery;
@@ -198,9 +178,8 @@ export class DeliveryService {
       freshOrder.status = OrderStatus.DELIVERED;
       freshOrder.deliveredAt = new Date();
 
-      const payment = await paymentRepo.findOne({ where: { orderId: freshOrder.id } });
-
       if (freshOrder.paymentMethod === PaymentMethod.COD) {
+        const payment = await paymentRepo.findOne({ where: { orderId: freshOrder.id } });
         const collected = dto.paymentCollected !== false;
         if (payment && collected) {
           payment.status = PaymentStatus.COLLECTED;
@@ -211,39 +190,9 @@ export class DeliveryService {
         }
         // If not collected, payment/order payment status stay pending —
         // a manual follow-up is needed (no automated dunning in v1).
-      } else {
-        // Udhaar: credit is only drawn against the ledger now, on actual
-        // delivery — not at checkout — per PLAN-order-delivery.md §5.
-        const accountRepo = manager.getRepository(UdhaarAccount);
-        const transactionRepo = manager.getRepository(UdhaarTransaction);
-        const account = await accountRepo
-          .createQueryBuilder('a')
-          .setLock('pessimistic_write')
-          .where('a.retailerProfileId = :id', { id: freshOrder.retailerProfileId })
-          .getOne();
-        if (account) {
-          const amount = Number(freshOrder.subtotal);
-          const newBalance = Number(account.outstandingBalance) + amount;
-          account.outstandingBalance = newBalance.toFixed(2);
-          await accountRepo.save(account);
-          await transactionRepo.save(
-            transactionRepo.create({
-              udhaarAccountId: account.id,
-              orderId: freshOrder.id,
-              type: UdhaarTransactionType.DRAW,
-              amount: amount.toFixed(2),
-              balanceAfter: newBalance.toFixed(2),
-              note: `Order ${freshOrder.orderNumber}`,
-            }),
-          );
-        }
-        if (payment) {
-          payment.status = PaymentStatus.COLLECTED;
-          payment.collectedAt = new Date();
-          await paymentRepo.save(payment);
-        }
-        freshOrder.paymentStatus = OrderPaymentStatus.PAID;
       }
+      // Prepaid orders are already settled at checkout (StubGatewayDriver) —
+      // nothing to collect on delivery.
 
       await orderRepo.save(freshOrder);
       return freshOrder;
@@ -269,19 +218,11 @@ export class DeliveryService {
     order.status = OrderStatus.DELIVERY_FAILED;
     await this.orders.save(order);
 
-    // No automatic retry/re-assignment in v1 (see PLAN-order-delivery.md §9)
-    // — release stock and leave it to a Mandi Admin / retailer to decide next steps.
-    const items = await this.orderItems.find({ where: { orderId: order.id } });
-    for (const item of items) {
-      if (!item.wholesalerListingId) continue;
-      await this.listings.increment({ id: item.wholesalerListingId }, 'stockUnits', item.quantity);
-    }
+    // Stock release on a failed delivery will be reintroduced once
+    // sourcing/stock reservation exists at the PurchaseOrder layer (next
+    // plan) — nothing is reserved against a wholesaler at checkout anymore.
 
-    await this.notifyRetailerFor(
-      order,
-      'Delivery failed',
-      `${order.orderNumber} could not be delivered: ${dto.reason}`,
-    );
+    await this.notifyRetailerFor(order, 'Delivery failed', `${order.orderNumber} could not be delivered: ${dto.reason}`);
     return this.toDeliveryView(delivery, order);
   }
 
@@ -298,7 +239,6 @@ export class DeliveryService {
             subtotal: Number(order.subtotal),
             deliveryAddress: order.deliveryAddress,
             retailerName: order.retailerProfile?.shopName ?? null,
-            wholesalerName: order.wholesalerProfile?.shopName ?? null,
             paymentMethod: order.paymentMethod,
           }
         : null,
