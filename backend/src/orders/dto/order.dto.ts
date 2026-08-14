@@ -1,20 +1,11 @@
-import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
 import { PaymentMethod } from '../order.entity';
 
 export class CheckoutDto {
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
-}
 
-export class RejectOrderDto {
+  /** Issued by `POST /cart/validate` — proves the retailer saw and accepted these exact prices (PRD §9.2). */
   @IsString()
-  @Length(1, 300)
-  reason: string;
-}
-
-export class CancelOrderDto {
-  @IsOptional()
-  @IsString()
-  @Length(1, 300)
-  reason?: string;
+  confirmedPriceToken: string;
 }
