@@ -16,7 +16,15 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, Cart, CartItem, RetailerProfile, User, Payment]),
+    TypeOrmModule.forFeature([
+      Order,
+      OrderItem,
+      Cart,
+      CartItem,
+      RetailerProfile,
+      User,
+      Payment,
+    ]),
     PricingModule,
     CartModule,
     NotificationsModule,

@@ -31,7 +31,10 @@ export class CartPriceTokenService {
   hashLines(cartId: string, lines: PricedCartLine[]): string {
     const canonical = [...lines]
       .sort((a, b) => a.productId.localeCompare(b.productId))
-      .map((l) => `${l.productId}:${l.quantity}:${l.snapshotPrice}:${l.snapshotMoq}`)
+      .map(
+        (l) =>
+          `${l.productId}:${l.quantity}:${l.snapshotPrice}:${l.snapshotMoq}`,
+      )
       .join('|');
     return createHash('sha256').update(`${cartId}::${canonical}`).digest('hex');
   }
@@ -39,7 +42,9 @@ export class CartPriceTokenService {
   sign(hash: string, ttlMs = DEFAULT_TTL_MS): string {
     const expiresAt = Date.now() + ttlMs;
     const payload = `${hash}.${expiresAt}`;
-    const signature = createHmac('sha256', this.secret()).update(payload).digest('hex');
+    const signature = createHmac('sha256', this.secret())
+      .update(payload)
+      .digest('hex');
     return Buffer.from(`${payload}.${signature}`).toString('base64url');
   }
 
@@ -60,7 +65,10 @@ export class CartPriceTokenService {
 
     const sigBuf = Buffer.from(signature, 'hex');
     const expectedBuf = Buffer.from(expectedSignature, 'hex');
-    if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
+    if (
+      sigBuf.length !== expectedBuf.length ||
+      !timingSafeEqual(sigBuf, expectedBuf)
+    ) {
       return false;
     }
     if (hash !== expectedHash) return false;

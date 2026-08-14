@@ -1,4 +1,10 @@
-import { IsBoolean, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+} from 'class-validator';
 
 export class AssignDeliveryDto {
   @IsUUID()

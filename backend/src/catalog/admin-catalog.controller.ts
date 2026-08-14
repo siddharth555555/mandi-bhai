@@ -53,7 +53,10 @@ export class AdminCatalogController {
   }
 
   @Post('products/:id/aliases')
-  addAlias(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateAliasDto) {
+  addAlias(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateAliasDto,
+  ) {
     return this.catalog.addAlias(id, dto);
   }
 

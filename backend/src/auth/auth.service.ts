@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -61,9 +65,14 @@ export class AuthService {
     };
   }
 
-  async createRetailerProfile(userId: string, shopName: string, address?: string) {
+  async createRetailerProfile(
+    userId: string,
+    shopName: string,
+    address?: string,
+  ) {
     const existing = await this.retailerProfiles.findOne({ where: { userId } });
-    if (existing) throw new BadRequestException('Retailer profile already exists');
+    if (existing)
+      throw new BadRequestException('Retailer profile already exists');
 
     const profile = await this.retailerProfiles.save(
       this.retailerProfiles.create({ userId, shopName, address }),
@@ -80,8 +89,11 @@ export class AuthService {
     const mandi = await this.mandis.findOne({ where: { id: mandiId } });
     if (!mandi) throw new NotFoundException('Mandi not found');
 
-    const existing = await this.wholesalerProfiles.findOne({ where: { userId } });
-    if (existing) throw new BadRequestException('Wholesaler profile already exists');
+    const existing = await this.wholesalerProfiles.findOne({
+      where: { userId },
+    });
+    if (existing)
+      throw new BadRequestException('Wholesaler profile already exists');
 
     const profile = await this.wholesalerProfiles.save(
       this.wholesalerProfiles.create({ userId, shopName, mandiId, address }),
@@ -102,7 +114,9 @@ export class AuthService {
   }
 
   async updateWholesalerAddress(userId: string, address: string) {
-    const profile = await this.wholesalerProfiles.findOne({ where: { userId } });
+    const profile = await this.wholesalerProfiles.findOne({
+      where: { userId },
+    });
     if (!profile) throw new NotFoundException('Wholesaler profile not found');
     profile.address = address;
     return this.wholesalerProfiles.save(profile);

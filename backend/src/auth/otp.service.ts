@@ -31,7 +31,9 @@ export class OtpService {
    * TODO(sms): replace the logger line with a real SMS provider call
    * (MSG91 / Gupshup / Twilio) and stop returning the OTP in the response.
    */
-  async requestOtp(phone: string): Promise<{ devOtp: string; expiresInSeconds: number }> {
+  async requestOtp(
+    phone: string,
+  ): Promise<{ devOtp: string; expiresInSeconds: number }> {
     const otp = this.generateOtp();
     const otpHash = await bcrypt.hash(otp, 10);
 
@@ -43,7 +45,9 @@ export class OtpService {
     await this.otpRepo.save(record);
 
     // TODO(sms): send via provider instead of logging.
-    this.logger.warn(`[STUB SMS] OTP for ${phone} is ${otp} (expires in 5 min)`);
+    this.logger.warn(
+      `[STUB SMS] OTP for ${phone} is ${otp} (expires in 5 min)`,
+    );
 
     return { devOtp: otp, expiresInSeconds: OTP_TTL_MS / 1000 };
   }

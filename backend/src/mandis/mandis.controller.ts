@@ -5,7 +5,9 @@ import { Mandi } from './mandi.entity';
 
 @Controller('mandis')
 export class MandisController {
-  constructor(@InjectRepository(Mandi) private readonly mandis: Repository<Mandi>) {}
+  constructor(
+    @InjectRepository(Mandi) private readonly mandis: Repository<Mandi>,
+  ) {}
 
   @Get()
   findAll() {

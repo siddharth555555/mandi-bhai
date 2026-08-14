@@ -14,7 +14,15 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Delivery, DeliveryPartnerProfile, MandiAdminProfile, RetailerProfile, User, Order, Payment]),
+    TypeOrmModule.forFeature([
+      Delivery,
+      DeliveryPartnerProfile,
+      MandiAdminProfile,
+      RetailerProfile,
+      User,
+      Order,
+      Payment,
+    ]),
     NotificationsModule,
   ],
   controllers: [AdminDeliveryController, RiderDeliveryController],

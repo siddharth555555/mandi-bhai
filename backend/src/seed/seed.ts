@@ -52,7 +52,11 @@ const CATEGORY_RATE: Record<string, number> = {
   clean: 0.13,
 };
 
-function basePriceFor(categorySlug: string, baseValue: number, baseUnit: string) {
+function basePriceFor(
+  categorySlug: string,
+  baseValue: number,
+  baseUnit: string,
+) {
   if (baseUnit === 'count') return baseValue * 8;
   const rate = CATEGORY_RATE[categorySlug] ?? 0.08;
   return baseValue * rate;
@@ -177,7 +181,10 @@ const DELIVERY_PARTNER_SEEDS: Array<{
   },
 ];
 
-async function getOrCreateUser(userRepo: Repository<User>, phone: string): Promise<User> {
+async function getOrCreateUser(
+  userRepo: Repository<User>,
+  phone: string,
+): Promise<User> {
   let user = await userRepo.findOne({ where: { phone } });
   if (!user) {
     user = await userRepo.save(userRepo.create({ phone }));
@@ -213,7 +220,9 @@ async function seed() {
   for (const s of SUPER_ADMIN_SEEDS) {
     const user = await getOrCreateUser(userRepo, s.phone);
 
-    const existing = await superAdminRepo.findOne({ where: { userId: user.id } });
+    const existing = await superAdminRepo.findOne({
+      where: { userId: user.id },
+    });
     if (existing) {
       console.log(`Super Admin profile already exists for ${s.phone}`);
       continue;
@@ -229,19 +238,25 @@ async function seed() {
   for (const a of ADMIN_SEEDS) {
     const mandi = mandiByName.get(a.mandiName);
     if (!mandi) {
-      console.warn(`Skipping admin ${a.phone}: mandi "${a.mandiName}" not seeded`);
+      console.warn(
+        `Skipping admin ${a.phone}: mandi "${a.mandiName}" not seeded`,
+      );
       continue;
     }
 
     const user = await getOrCreateUser(userRepo, a.phone);
 
-    const existingAdmin = await adminRepo.findOne({ where: { userId: user.id } });
+    const existingAdmin = await adminRepo.findOne({
+      where: { userId: user.id },
+    });
     if (existingAdmin) {
       console.log(`Admin profile already exists for ${a.phone}`);
       continue;
     }
 
-    await adminRepo.save(adminRepo.create({ userId: user.id, mandiId: mandi.id }));
+    await adminRepo.save(
+      adminRepo.create({ userId: user.id, mandiId: mandi.id }),
+    );
     console.log(`Created Mandi Admin: ${a.phone} -> ${mandi.name}`);
   }
 
@@ -256,7 +271,11 @@ async function seed() {
     }
 
     await retailerRepo.save(
-      retailerRepo.create({ userId: user.id, shopName: r.shopName, address: r.address }),
+      retailerRepo.create({
+        userId: user.id,
+        shopName: r.shopName,
+        address: r.address,
+      }),
     );
     console.log(`Created Retailer: ${r.phone} -> ${r.shopName}`);
   }
@@ -265,13 +284,17 @@ async function seed() {
   for (const w of WHOLESALER_SEEDS) {
     const mandi = mandiByName.get(w.mandiName);
     if (!mandi) {
-      console.warn(`Skipping wholesaler ${w.phone}: mandi "${w.mandiName}" not seeded`);
+      console.warn(
+        `Skipping wholesaler ${w.phone}: mandi "${w.mandiName}" not seeded`,
+      );
       continue;
     }
 
     const user = await getOrCreateUser(userRepo, w.phone);
 
-    const existing = await wholesalerRepo.findOne({ where: { userId: user.id } });
+    const existing = await wholesalerRepo.findOne({
+      where: { userId: user.id },
+    });
     if (existing) {
       console.log(`Wholesaler profile already exists for ${w.phone}`);
       continue;
@@ -285,20 +308,26 @@ async function seed() {
         address: w.address,
       }),
     );
-    console.log(`Created Wholesaler: ${w.phone} -> ${w.shopName} (${mandi.name})`);
+    console.log(
+      `Created Wholesaler: ${w.phone} -> ${w.shopName} (${mandi.name})`,
+    );
   }
 
   // -- Delivery partners (riders) --
   for (const d of DELIVERY_PARTNER_SEEDS) {
     const mandi = mandiByName.get(d.mandiName);
     if (!mandi) {
-      console.warn(`Skipping rider ${d.phone}: mandi "${d.mandiName}" not seeded`);
+      console.warn(
+        `Skipping rider ${d.phone}: mandi "${d.mandiName}" not seeded`,
+      );
       continue;
     }
 
     const user = await getOrCreateUser(userRepo, d.phone);
 
-    const existing = await deliveryPartnerRepo.findOne({ where: { userId: user.id } });
+    const existing = await deliveryPartnerRepo.findOne({
+      where: { userId: user.id },
+    });
     if (existing) {
       console.log(`Delivery partner profile already exists for ${d.phone}`);
       continue;
@@ -312,7 +341,9 @@ async function seed() {
         mandiId: mandi.id,
       }),
     );
-    console.log(`Created Delivery Partner: ${d.phone} -> ${d.name} (${mandi.name})`);
+    console.log(
+      `Created Delivery Partner: ${d.phone} -> ${d.name} (${mandi.name})`,
+    );
   }
 
   // -- Categories --
@@ -341,7 +372,9 @@ async function seed() {
   for (const p of PRODUCT_SEEDS) {
     const category = categoryBySlug.get(p.categorySlug);
     if (!category) {
-      console.warn(`Skipping "${p.name}": category "${p.categorySlug}" not seeded`);
+      console.warn(
+        `Skipping "${p.name}": category "${p.categorySlug}" not seeded`,
+      );
       continue;
     }
 
@@ -404,7 +437,9 @@ async function seed() {
   for (const w of WHOLESALER_SEEDS) {
     const user = await userRepo.findOne({ where: { phone: w.phone } });
     if (!user) continue;
-    const profile = await wholesalerRepo.findOne({ where: { userId: user.id } });
+    const profile = await wholesalerRepo.findOne({
+      where: { userId: user.id },
+    });
     if (!profile) continue;
 
     const variance = WHOLESALER_PRICE_FACTOR[w.phone] ?? 1;
@@ -453,8 +488,12 @@ async function seed() {
   await ds.destroy();
   console.log('Seed complete.');
   console.log('');
-  console.log('Log in as any seeded phone number above via the app\'s Phone screen —');
-  console.log('OTP is dev-stubbed, so use the "Autofill dev OTP" button after requesting it.');
+  console.log(
+    "Log in as any seeded phone number above via the app's Phone screen —",
+  );
+  console.log(
+    'OTP is dev-stubbed, so use the "Autofill dev OTP" button after requesting it.',
+  );
 }
 
 seed().catch((err) => {

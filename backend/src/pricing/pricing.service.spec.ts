@@ -68,7 +68,12 @@ describe('PricingService', () => {
   describe('mandi average', () => {
     it('averages the in-stock minimum and every quote above it', async () => {
       // The worked example from BRD §4.2: {38 in stock, 42, 48, 56 out of stock}
-      listings = [listing(38, 400), listing(42, 150), listing(48, 900), listing(56, 0)];
+      listings = [
+        listing(38, 400),
+        listing(42, 150),
+        listing(48, 900),
+        listing(56, 0),
+      ];
       withMarkup(10);
 
       const price = await service.priceFor(PRODUCT);

@@ -7,7 +7,12 @@ import { DeliveryPartnerProfile } from '../entities/delivery-partner-profile.ent
 import { MandiAdminProfile } from '../entities/mandi-admin-profile.entity';
 import { RetailerProfile } from '../entities/retailer-profile.entity';
 import { User } from '../entities/user.entity';
-import { Order, OrderPaymentStatus, OrderStatus, PaymentMethod } from '../orders/order.entity';
+import {
+  Order,
+  OrderPaymentStatus,
+  OrderStatus,
+  PaymentMethod,
+} from '../orders/order.entity';
 import { Payment, PaymentStatus } from '../wallet/payment.entity';
 import { NotificationService } from '../notifications/notification.service';
 
@@ -36,11 +41,16 @@ describe('DeliveryService', () => {
       deliveryPartnerId: RIDER_ID,
       status: DeliveryStatus.PICKED_UP,
     } as Delivery;
-    payment = { id: 'payment-1', orderId: order.id, status: PaymentStatus.PENDING } as Payment;
+    payment = {
+      id: 'payment-1',
+      orderId: order.id,
+      status: PaymentStatus.PENDING,
+    } as Payment;
 
     const fakeManager = {
       getRepository: (entity: any) => {
-        if (entity === Delivery) return { save: async (v: Delivery) => Object.assign(delivery, v) };
+        if (entity === Delivery)
+          return { save: async (v: Delivery) => Object.assign(delivery, v) };
         if (entity === Order) {
           return {
             findOneOrFail: async () => order,
@@ -60,17 +70,47 @@ describe('DeliveryService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         DeliveryService,
-        { provide: DataSource, useValue: { transaction: async (fn: any) => fn(fakeManager) } },
-        { provide: getRepositoryToken(Delivery), useValue: { findOne: async () => delivery } },
+        {
+          provide: DataSource,
+          useValue: { transaction: async (fn: any) => fn(fakeManager) },
+        },
+        {
+          provide: getRepositoryToken(Delivery),
+          useValue: { findOne: async () => delivery },
+        },
         {
           provide: getRepositoryToken(DeliveryPartnerProfile),
-          useValue: { findOne: async () => ({ id: RIDER_ID, userId: 'user-rider' }) },
+          useValue: {
+            findOne: async () => ({ id: RIDER_ID, userId: 'user-rider' }),
+          },
         },
-        { provide: getRepositoryToken(MandiAdminProfile), useValue: { findOne: async () => null } },
-        { provide: getRepositoryToken(RetailerProfile), useValue: { findOne: async () => ({ id: 'retailer-1', userId: 'user-retailer' }) } },
-        { provide: getRepositoryToken(User), useValue: { findOne: async () => ({ id: 'user-x', phone: '9000000001' }) } },
-        { provide: getRepositoryToken(Order), useValue: { findOne: async () => order } },
-        { provide: NotificationService, useValue: { notify: async () => undefined } },
+        {
+          provide: getRepositoryToken(MandiAdminProfile),
+          useValue: { findOne: async () => null },
+        },
+        {
+          provide: getRepositoryToken(RetailerProfile),
+          useValue: {
+            findOne: async () => ({
+              id: 'retailer-1',
+              userId: 'user-retailer',
+            }),
+          },
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: {
+            findOne: async () => ({ id: 'user-x', phone: '9000000001' }),
+          },
+        },
+        {
+          provide: getRepositoryToken(Order),
+          useValue: { findOne: async () => order },
+        },
+        {
+          provide: NotificationService,
+          useValue: { notify: async () => undefined },
+        },
       ],
     }).compile();
 

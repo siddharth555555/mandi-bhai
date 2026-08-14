@@ -1,21 +1,39 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Delivery, DeliveryStatus } from './delivery.entity';
-import { DeliveryPartnerProfile, DeliveryPartnerStatus } from '../entities/delivery-partner-profile.entity';
+import {
+  DeliveryPartnerProfile,
+  DeliveryPartnerStatus,
+} from '../entities/delivery-partner-profile.entity';
 import { MandiAdminProfile } from '../entities/mandi-admin-profile.entity';
 import { RetailerProfile } from '../entities/retailer-profile.entity';
 import { User } from '../entities/user.entity';
-import { Order, OrderPaymentStatus, OrderStatus, PaymentMethod } from '../orders/order.entity';
+import {
+  Order,
+  OrderPaymentStatus,
+  OrderStatus,
+  PaymentMethod,
+} from '../orders/order.entity';
 import { Payment, PaymentStatus } from '../wallet/payment.entity';
 import { NotificationService } from '../notifications/notification.service';
-import { AssignDeliveryDto, FailDeliveryDto, MarkDeliveredDto } from './dto/delivery.dto';
+import {
+  AssignDeliveryDto,
+  FailDeliveryDto,
+  MarkDeliveredDto,
+} from './dto/delivery.dto';
 
 @Injectable()
 export class DeliveryService {
   constructor(
     private readonly dataSource: DataSource,
-    @InjectRepository(Delivery) private readonly deliveries: Repository<Delivery>,
+    @InjectRepository(Delivery)
+    private readonly deliveries: Repository<Delivery>,
     @InjectRepository(DeliveryPartnerProfile)
     private readonly partners: Repository<DeliveryPartnerProfile>,
     @InjectRepository(MandiAdminProfile)
@@ -29,25 +47,39 @@ export class DeliveryService {
 
   private async requireMandiAdmin(userId: string): Promise<MandiAdminProfile> {
     const profile = await this.mandiAdmins.findOne({ where: { userId } });
-    if (!profile) throw new ForbiddenException('No Mandi Admin profile on this account');
+    if (!profile)
+      throw new ForbiddenException('No Mandi Admin profile on this account');
     return profile;
   }
 
   private async requireRider(userId: string): Promise<DeliveryPartnerProfile> {
     const profile = await this.partners.findOne({ where: { userId } });
-    if (!profile) throw new ForbiddenException('No delivery partner profile on this account');
+    if (!profile)
+      throw new ForbiddenException(
+        'No delivery partner profile on this account',
+      );
     return profile;
   }
 
-  private async notifyUser(userId: string, title: string, body: string, meta?: Record<string, unknown>) {
+  private async notifyUser(
+    userId: string,
+    title: string,
+    body: string,
+    meta?: Record<string, unknown>,
+  ) {
     const user = await this.users.findOne({ where: { id: userId } });
     if (!user) return;
     await this.notifications.notify({ toPhone: user.phone, title, body, meta });
   }
 
   private async notifyRetailerFor(order: Order, title: string, body: string) {
-    const retailer = await this.retailers.findOne({ where: { id: order.retailerProfileId } });
-    if (retailer) await this.notifyUser(retailer.userId, title, body, { orderId: order.id });
+    const retailer = await this.retailers.findOne({
+      where: { id: order.retailerProfileId },
+    });
+    if (retailer)
+      await this.notifyUser(retailer.userId, title, body, {
+        orderId: order.id,
+      });
   }
 
   /* ------------------------------ mandi admin ------------------------------ */
@@ -87,9 +119,14 @@ export class DeliveryService {
     }
 
     const partner = await this.partners.findOne({
-      where: { id: dto.deliveryPartnerId, mandiId: admin.mandiId, status: DeliveryPartnerStatus.ACTIVE },
+      where: {
+        id: dto.deliveryPartnerId,
+        mandiId: admin.mandiId,
+        status: DeliveryPartnerStatus.ACTIVE,
+      },
     });
-    if (!partner) throw new NotFoundException('Delivery partner not found in your mandi');
+    if (!partner)
+      throw new NotFoundException('Delivery partner not found in your mandi');
 
     delivery.deliveryPartnerId = partner.id;
     delivery.status = DeliveryStatus.ASSIGNED;
@@ -140,7 +177,9 @@ export class DeliveryService {
     const rider = await this.requireRider(userId);
     const delivery = await this.requireOwnedByRider(rider.id, deliveryId);
     if (delivery.status !== DeliveryStatus.ASSIGNED) {
-      throw new BadRequestException(`Delivery can't be marked picked up (status: ${delivery.status})`);
+      throw new BadRequestException(
+        `Delivery can't be marked picked up (status: ${delivery.status})`,
+      );
     }
 
     delivery.status = DeliveryStatus.PICKED_UP;
@@ -161,8 +200,14 @@ export class DeliveryService {
   async delivered(userId: string, deliveryId: string, dto: MarkDeliveredDto) {
     const rider = await this.requireRider(userId);
     const delivery = await this.requireOwnedByRider(rider.id, deliveryId);
-    if (![DeliveryStatus.ASSIGNED, DeliveryStatus.PICKED_UP].includes(delivery.status)) {
-      throw new BadRequestException(`Delivery can't be marked delivered (status: ${delivery.status})`);
+    if (
+      ![DeliveryStatus.ASSIGNED, DeliveryStatus.PICKED_UP].includes(
+        delivery.status,
+      )
+    ) {
+      throw new BadRequestException(
+        `Delivery can't be marked delivered (status: ${delivery.status})`,
+      );
     }
 
     const order = await this.dataSource.transaction(async (manager) => {
@@ -174,12 +219,16 @@ export class DeliveryService {
       delivery.deliveredAt = new Date();
       await deliveryRepo.save(delivery);
 
-      const freshOrder = await orderRepo.findOneOrFail({ where: { id: delivery.orderId } });
+      const freshOrder = await orderRepo.findOneOrFail({
+        where: { id: delivery.orderId },
+      });
       freshOrder.status = OrderStatus.DELIVERED;
       freshOrder.deliveredAt = new Date();
 
       if (freshOrder.paymentMethod === PaymentMethod.COD) {
-        const payment = await paymentRepo.findOne({ where: { orderId: freshOrder.id } });
+        const payment = await paymentRepo.findOne({
+          where: { orderId: freshOrder.id },
+        });
         const collected = dto.paymentCollected !== false;
         if (payment && collected) {
           payment.status = PaymentStatus.COLLECTED;
@@ -198,15 +247,25 @@ export class DeliveryService {
       return freshOrder;
     });
 
-    await this.notifyRetailerFor(order, 'Order delivered', `${order.orderNumber} has been delivered.`);
+    await this.notifyRetailerFor(
+      order,
+      'Order delivered',
+      `${order.orderNumber} has been delivered.`,
+    );
     return this.toDeliveryView(delivery, order);
   }
 
   async failed(userId: string, deliveryId: string, dto: FailDeliveryDto) {
     const rider = await this.requireRider(userId);
     const delivery = await this.requireOwnedByRider(rider.id, deliveryId);
-    if (![DeliveryStatus.ASSIGNED, DeliveryStatus.PICKED_UP].includes(delivery.status)) {
-      throw new BadRequestException(`Delivery can't be marked failed (status: ${delivery.status})`);
+    if (
+      ![DeliveryStatus.ASSIGNED, DeliveryStatus.PICKED_UP].includes(
+        delivery.status,
+      )
+    ) {
+      throw new BadRequestException(
+        `Delivery can't be marked failed (status: ${delivery.status})`,
+      );
     }
 
     delivery.status = DeliveryStatus.FAILED;
@@ -222,7 +281,11 @@ export class DeliveryService {
     // sourcing/stock reservation exists at the PurchaseOrder layer (next
     // plan) — nothing is reserved against a wholesaler at checkout anymore.
 
-    await this.notifyRetailerFor(order, 'Delivery failed', `${order.orderNumber} could not be delivered: ${dto.reason}`);
+    await this.notifyRetailerFor(
+      order,
+      'Delivery failed',
+      `${order.orderNumber} could not be delivered: ${dto.reason}`,
+    );
     return this.toDeliveryView(delivery, order);
   }
 

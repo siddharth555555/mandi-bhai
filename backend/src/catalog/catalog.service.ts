@@ -55,7 +55,8 @@ function toRetailerOffer(price?: PlatformPrice) {
 @Injectable()
 export class CatalogService {
   constructor(
-    @InjectRepository(Category) private readonly categories: Repository<Category>,
+    @InjectRepository(Category)
+    private readonly categories: Repository<Category>,
     @InjectRepository(Product) private readonly products: Repository<Product>,
     @InjectRepository(ProductAlias)
     private readonly aliases: Repository<ProductAlias>,
@@ -81,7 +82,9 @@ export class CatalogService {
       .where('p.status = :status', { status: ProductStatus.ACTIVE });
 
     if (query.categoryId) {
-      qb.andWhere('p.categoryId = :categoryId', { categoryId: query.categoryId });
+      qb.andWhere('p.categoryId = :categoryId', {
+        categoryId: query.categoryId,
+      });
     }
 
     if (query.q?.trim()) {
@@ -141,7 +144,9 @@ export class CatalogService {
   }
 
   async createProduct(dto: CreateProductDto) {
-    const category = await this.categories.findOne({ where: { id: dto.categoryId } });
+    const category = await this.categories.findOne({
+      where: { id: dto.categoryId },
+    });
     if (!category) throw new NotFoundException('Category not found');
 
     const product = this.products.create({
@@ -160,7 +165,9 @@ export class CatalogService {
     if (!product) throw new NotFoundException('Product not found');
 
     if (dto.categoryId) {
-      const category = await this.categories.findOne({ where: { id: dto.categoryId } });
+      const category = await this.categories.findOne({
+        where: { id: dto.categoryId },
+      });
       if (!category) throw new NotFoundException('Category not found');
       product.categoryId = dto.categoryId;
     }
@@ -171,7 +178,8 @@ export class CatalogService {
 
     // Pack value and unit must move together — changing one without the other
     // would leave the derived base measure inconsistent.
-    const changingPack = dto.packValue !== undefined || dto.packUnit !== undefined;
+    const changingPack =
+      dto.packValue !== undefined || dto.packUnit !== undefined;
     if (changingPack) {
       const value = dto.packValue ?? Number(product.packValue);
       const unit = dto.packUnit ?? product.packUnit;
@@ -197,15 +205,23 @@ export class CatalogService {
     }));
   }
 
-  async addAlias(productId: string, dto: CreateAliasDto, source = AliasSource.ADMIN) {
+  async addAlias(
+    productId: string,
+    dto: CreateAliasDto,
+    source = AliasSource.ADMIN,
+  ) {
     await this.assertProductExists(productId);
 
     const normalised = normaliseAlias(dto.alias);
     if (!normalised) throw new BadRequestException('Alias cannot be empty');
 
-    const existing = await this.aliases.findOne({ where: { productId, normalised } });
+    const existing = await this.aliases.findOne({
+      where: { productId, normalised },
+    });
     if (existing) {
-      throw new BadRequestException('That alias already exists on this product');
+      throw new BadRequestException(
+        'That alias already exists on this product',
+      );
     }
 
     const alias = await this.aliases.save(
@@ -227,7 +243,9 @@ export class CatalogService {
   }
 
   async removeAlias(productId: string, aliasId: string) {
-    const alias = await this.aliases.findOne({ where: { id: aliasId, productId } });
+    const alias = await this.aliases.findOne({
+      where: { id: aliasId, productId },
+    });
     if (!alias) throw new NotFoundException('Alias not found on this product');
     await this.aliases.remove(alias);
     return { deleted: true };

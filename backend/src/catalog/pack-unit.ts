@@ -25,7 +25,10 @@ export enum PackBaseUnit {
   COUNT = 'count',
 }
 
-const CONVERSIONS: Record<PackUnit, { baseUnit: PackBaseUnit; factor: number }> = {
+const CONVERSIONS: Record<
+  PackUnit,
+  { baseUnit: PackBaseUnit; factor: number }
+> = {
   [PackUnit.KG]: { baseUnit: PackBaseUnit.G, factor: 1000 },
   [PackUnit.G]: { baseUnit: PackBaseUnit.G, factor: 1 },
   [PackUnit.L]: { baseUnit: PackBaseUnit.ML, factor: 1000 },

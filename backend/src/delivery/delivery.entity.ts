@@ -54,7 +54,11 @@ export class Delivery {
   @Column()
   mandiId: string;
 
-  @Column({ type: 'enum', enum: DeliveryStatus, default: DeliveryStatus.UNASSIGNED })
+  @Column({
+    type: 'enum',
+    enum: DeliveryStatus,
+    default: DeliveryStatus.UNASSIGNED,
+  })
   status: DeliveryStatus;
 
   @Column({ type: 'timestamp', nullable: true })

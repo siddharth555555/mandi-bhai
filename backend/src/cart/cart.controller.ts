@@ -43,7 +43,10 @@ export class CartController {
   }
 
   @Delete('items/:id')
-  removeItem(@Req() req: { user: JwtPayload }, @Param('id', ParseUUIDPipe) id: string) {
+  removeItem(
+    @Req() req: { user: JwtPayload },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.cart.removeItem(req.user.sub, id);
   }
 

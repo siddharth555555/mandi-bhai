@@ -68,7 +68,11 @@ export class Order {
   @Column({ type: 'enum', enum: PaymentMethod })
   paymentMethod: PaymentMethod;
 
-  @Column({ type: 'enum', enum: OrderPaymentStatus, default: OrderPaymentStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: OrderPaymentStatus,
+    default: OrderPaymentStatus.PENDING,
+  })
   paymentStatus: OrderPaymentStatus;
 
   /** Platform selling total the retailer was charged — min quote + markup, summed. */

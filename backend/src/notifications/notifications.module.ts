@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConsoleNotificationDriver, NotificationService } from './notification.service';
+import {
+  ConsoleNotificationDriver,
+  NotificationService,
+} from './notification.service';
 
 @Module({
   providers: [ConsoleNotificationDriver, NotificationService],

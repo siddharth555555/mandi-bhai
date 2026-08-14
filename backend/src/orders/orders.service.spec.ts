@@ -3,7 +3,12 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { Order, OrderStatus, PaymentMethod, OrderPaymentStatus } from './order.entity';
+import {
+  Order,
+  OrderStatus,
+  PaymentMethod,
+  OrderPaymentStatus,
+} from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Cart } from '../cart/cart.entity';
 import { CartItem } from '../cart/cart-item.entity';
@@ -29,7 +34,11 @@ describe('OrdersService', () => {
   let orderItemRows: OrderItem[];
   let paymentRows: Payment[];
   let tokenValid: boolean;
-  let livePrice: { available: boolean; sellingPrice: number | null; effectiveMoq: number };
+  let livePrice: {
+    available: boolean;
+    sellingPrice: number | null;
+    effectiveMoq: number;
+  };
 
   beforeEach(async () => {
     cartRow = { id: 'cart-1', retailerProfileId: RETAILER_ID } as Cart;
@@ -70,7 +79,8 @@ describe('OrdersService', () => {
         }
         if (entity === OrderItem) {
           return {
-            create: (v: Partial<OrderItem>) => ({ id: `oi-${orderItemRows.length + 1}`, ...v }) as OrderItem,
+            create: (v: Partial<OrderItem>) =>
+              ({ id: `oi-${orderItemRows.length + 1}`, ...v }) as OrderItem,
             save: async (v: OrderItem) => {
               orderItemRows.push(v);
               return v;
@@ -79,7 +89,8 @@ describe('OrdersService', () => {
         }
         if (entity === Payment) {
           return {
-            create: (v: Partial<Payment>) => ({ id: 'payment-1', ...v }) as Payment,
+            create: (v: Partial<Payment>) =>
+              ({ id: 'payment-1', ...v }) as Payment,
             save: async (v: Payment) => {
               paymentRows.push(v);
               return v;
@@ -87,7 +98,11 @@ describe('OrdersService', () => {
           };
         }
         if (entity === CartItem) {
-          return { delete: async () => { cartItemRows = []; } };
+          return {
+            delete: async () => {
+              cartItemRows = [];
+            },
+          };
         }
         throw new Error(`Unexpected repository requested: ${entity}`);
       },
@@ -100,7 +115,10 @@ describe('OrdersService', () => {
           provide: DataSource,
           useValue: { transaction: async (fn: any) => fn(fakeManager) },
         },
-        { provide: getRepositoryToken(Cart), useValue: { findOne: async () => cartRow } },
+        {
+          provide: getRepositoryToken(Cart),
+          useValue: { findOne: async () => cartRow },
+        },
         {
           provide: getRepositoryToken(CartItem),
           useValue: { find: async () => cartItemRows },
@@ -109,15 +127,25 @@ describe('OrdersService', () => {
           provide: getRepositoryToken(RetailerProfile),
           useValue: {
             findOne: async () =>
-              ({ id: RETAILER_ID, userId: USER_ID, address: 'Shop 1, Test Market' } as RetailerProfile),
+              ({
+                id: RETAILER_ID,
+                userId: USER_ID,
+                address: 'Shop 1, Test Market',
+              }) as RetailerProfile,
           },
         },
-        { provide: getRepositoryToken(User), useValue: { findOne: async () => ({ id: USER_ID, phone: '9000000001' }) } },
+        {
+          provide: getRepositoryToken(User),
+          useValue: {
+            findOne: async () => ({ id: USER_ID, phone: '9000000001' }),
+          },
+        },
         {
           provide: getRepositoryToken(Order),
           useValue: {
             find: async () => orderRows,
-            findOne: async ({ where }: any) => orderRows.find((o) => o.id === where.id) ?? null,
+            findOne: async ({ where }: any) =>
+              orderRows.find((o) => o.id === where.id) ?? null,
             save: async (v: Order) => {
               const i = orderRows.findIndex((r) => r.id === v.id);
               if (i >= 0) orderRows[i] = v;
@@ -128,16 +156,33 @@ describe('OrdersService', () => {
         },
         {
           provide: getRepositoryToken(OrderItem),
-          useValue: { find: async ({ where }: any) => orderItemRows.filter((i) => i.orderId === where.orderId) },
+          useValue: {
+            find: async ({ where }: any) =>
+              orderItemRows.filter((i) => i.orderId === where.orderId),
+          },
         },
         { provide: getRepositoryToken(Payment), useValue: {} },
         {
           provide: PricingService,
-          useValue: { priceForMany: async (ids: string[]) => new Map(ids.map((id) => [id, livePrice])) },
+          useValue: {
+            priceForMany: async (ids: string[]) =>
+              new Map(ids.map((id) => [id, livePrice])),
+          },
         },
-        { provide: CartPriceTokenService, useValue: { hashLines: () => 'hash', verify: () => tokenValid } },
-        { provide: StubGatewayDriver, useValue: { charge: async () => ({ success: true, gatewayRef: 'STUB-1' }) } },
-        { provide: NotificationService, useValue: { notify: async () => undefined } },
+        {
+          provide: CartPriceTokenService,
+          useValue: { hashLines: () => 'hash', verify: () => tokenValid },
+        },
+        {
+          provide: StubGatewayDriver,
+          useValue: {
+            charge: async () => ({ success: true, gatewayRef: 'STUB-1' }),
+          },
+        },
+        {
+          provide: NotificationService,
+          useValue: { notify: async () => undefined },
+        },
       ],
     }).compile();
 
@@ -158,7 +203,10 @@ describe('OrdersService', () => {
   it('rejects checkout when the token fails verification', async () => {
     tokenValid = false;
     await expect(
-      service.checkout(USER_ID, { paymentMethod: PaymentMethod.COD, confirmedPriceToken: 'tok' }),
+      service.checkout(USER_ID, {
+        paymentMethod: PaymentMethod.COD,
+        confirmedPriceToken: 'tok',
+      }),
     ).rejects.toThrow(BadRequestException);
     expect(orderRows).toHaveLength(0);
   });
@@ -166,14 +214,20 @@ describe('OrdersService', () => {
   it('rejects checkout when the live price drifted again since validation', async () => {
     livePrice = { available: true, sellingPrice: 45, effectiveMoq: 10 };
     await expect(
-      service.checkout(USER_ID, { paymentMethod: PaymentMethod.COD, confirmedPriceToken: 'tok' }),
+      service.checkout(USER_ID, {
+        paymentMethod: PaymentMethod.COD,
+        confirmedPriceToken: 'tok',
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('rejects checkout when quantity is now below the live MOQ', async () => {
     livePrice = { available: true, sellingPrice: 41.8, effectiveMoq: 20 };
     await expect(
-      service.checkout(USER_ID, { paymentMethod: PaymentMethod.COD, confirmedPriceToken: 'tok' }),
+      service.checkout(USER_ID, {
+        paymentMethod: PaymentMethod.COD,
+        confirmedPriceToken: 'tok',
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -188,18 +242,28 @@ describe('OrdersService', () => {
   });
 
   it('cancels a placed order', async () => {
-    await service.checkout(USER_ID, { paymentMethod: PaymentMethod.COD, confirmedPriceToken: 'tok' });
+    await service.checkout(USER_ID, {
+      paymentMethod: PaymentMethod.COD,
+      confirmedPriceToken: 'tok',
+    });
     const cancelled = await service.cancelOrder(USER_ID, 'order-1');
     expect(cancelled.status).toBe(OrderStatus.CANCELLED);
   });
 
   it('refuses to cancel an already-cancelled order', async () => {
-    await service.checkout(USER_ID, { paymentMethod: PaymentMethod.COD, confirmedPriceToken: 'tok' });
+    await service.checkout(USER_ID, {
+      paymentMethod: PaymentMethod.COD,
+      confirmedPriceToken: 'tok',
+    });
     await service.cancelOrder(USER_ID, 'order-1');
-    await expect(service.cancelOrder(USER_ID, 'order-1')).rejects.toThrow(BadRequestException);
+    await expect(service.cancelOrder(USER_ID, 'order-1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('cancelling an unknown order throws NotFoundException', async () => {
-    await expect(service.cancelOrder(USER_ID, 'nope')).rejects.toThrow(NotFoundException);
+    await expect(service.cancelOrder(USER_ID, 'nope')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });
